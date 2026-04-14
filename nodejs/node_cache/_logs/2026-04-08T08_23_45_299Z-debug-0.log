@@ -1,0 +1,171 @@
+0 verbose cli C:\Program Files\nodejs\node.exe D:\nodejs\node_global\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v20.18.0
+3 silly config load:file:D:\nodejs\node_global\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\86135\.npmrc
+5 silly config load:file:D:\nodejs\node_global\etc\npmrc
+6 verbose title npm install uipro-cli
+7 verbose argv "install" "--global" "uipro-cli"
+8 verbose logfile logs-max:10 dir:D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-08T08_23_45_299Z-
+9 verbose logfile D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-08T08_23_45_299Z-debug-0.log
+10 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+11 silly logfile done cleaning log files
+12 silly idealTree buildDeps
+13 silly fetch manifest uipro-cli@*
+14 silly packumentCache full:https://registry.npmmirror.com/uipro-cli cache-miss
+15 http cache https://registry.npmmirror.com/uipro-cli 130ms (cache hit)
+16 silly packumentCache full:https://registry.npmmirror.com/uipro-cli set size:42124 disposed:false
+17 silly placeDep ROOT uipro-cli@2.2.3 OK for:  want: *
+18 silly fetch manifest commander@^12.1.0
+19 silly packumentCache full:https://registry.npmmirror.com/commander cache-miss
+20 silly fetch manifest chalk@^5.3.0
+21 silly packumentCache full:https://registry.npmmirror.com/chalk cache-miss
+22 silly fetch manifest ora@^8.1.1
+23 silly packumentCache full:https://registry.npmmirror.com/ora cache-miss
+24 silly fetch manifest prompts@^2.4.2
+25 silly packumentCache full:https://registry.npmmirror.com/prompts cache-miss
+26 http cache https://registry.npmmirror.com/chalk 37ms (cache hit)
+27 silly packumentCache full:https://registry.npmmirror.com/chalk set size:105150 disposed:false
+28 http cache https://registry.npmmirror.com/commander 43ms (cache hit)
+29 silly packumentCache full:https://registry.npmmirror.com/commander set size:290753 disposed:false
+30 http cache https://registry.npmmirror.com/ora 49ms (cache hit)
+31 silly packumentCache full:https://registry.npmmirror.com/ora set size:119077 disposed:false
+32 http cache https://registry.npmmirror.com/prompts 53ms (cache hit)
+33 silly packumentCache full:https://registry.npmmirror.com/prompts set size:90529 disposed:false
+34 silly placeDep node_modules/uipro-cli chalk@5.6.2 OK for: uipro-cli@2.2.3 want: ^5.3.0
+35 silly placeDep node_modules/uipro-cli commander@12.1.0 OK for: uipro-cli@2.2.3 want: ^12.1.0
+36 silly placeDep node_modules/uipro-cli ora@8.2.0 OK for: uipro-cli@2.2.3 want: ^8.1.1
+37 silly placeDep node_modules/uipro-cli prompts@2.4.2 OK for: uipro-cli@2.2.3 want: ^2.4.2
+38 silly fetch manifest cli-cursor@^5.0.0
+39 silly packumentCache full:https://registry.npmmirror.com/cli-cursor cache-miss
+40 silly fetch manifest cli-spinners@^2.9.2
+41 silly packumentCache full:https://registry.npmmirror.com/cli-spinners cache-miss
+42 silly fetch manifest is-interactive@^2.0.0
+43 silly packumentCache full:https://registry.npmmirror.com/is-interactive cache-miss
+44 silly fetch manifest is-unicode-supported@^2.0.0
+45 silly packumentCache full:https://registry.npmmirror.com/is-unicode-supported cache-miss
+46 silly fetch manifest log-symbols@^6.0.0
+47 silly packumentCache full:https://registry.npmmirror.com/log-symbols cache-miss
+48 silly fetch manifest stdin-discarder@^0.2.2
+49 silly packumentCache full:https://registry.npmmirror.com/stdin-discarder cache-miss
+50 silly fetch manifest string-width@^7.2.0
+51 silly packumentCache full:https://registry.npmmirror.com/string-width cache-miss
+52 silly fetch manifest strip-ansi@^7.1.0
+53 silly packumentCache full:https://registry.npmmirror.com/strip-ansi cache-miss
+54 silly fetch manifest kleur@^3.0.3
+55 silly packumentCache full:https://registry.npmmirror.com/kleur cache-miss
+56 silly fetch manifest sisteransi@^1.0.5
+57 silly packumentCache full:https://registry.npmmirror.com/sisteransi cache-miss
+58 http cache https://registry.npmmirror.com/cli-spinners 56ms (cache hit)
+59 silly packumentCache full:https://registry.npmmirror.com/cli-spinners set size:60336 disposed:false
+60 http cache https://registry.npmmirror.com/is-unicode-supported 58ms (cache hit)
+61 silly packumentCache full:https://registry.npmmirror.com/is-unicode-supported set size:16734 disposed:false
+62 http cache https://registry.npmmirror.com/is-interactive 61ms (cache hit)
+63 silly packumentCache full:https://registry.npmmirror.com/is-interactive set size:7752 disposed:false
+64 http cache https://registry.npmmirror.com/cli-cursor 63ms (cache hit)
+65 silly packumentCache full:https://registry.npmmirror.com/cli-cursor set size:16014 disposed:false
+66 http cache https://registry.npmmirror.com/stdin-discarder 62ms (cache hit)
+67 silly packumentCache full:https://registry.npmmirror.com/stdin-discarder set size:14149 disposed:false
+68 http cache https://registry.npmmirror.com/string-width 62ms (cache hit)
+69 silly packumentCache full:https://registry.npmmirror.com/string-width set size:60189 disposed:false
+70 http cache https://registry.npmmirror.com/log-symbols 66ms (cache hit)
+71 silly packumentCache full:https://registry.npmmirror.com/log-symbols set size:27819 disposed:false
+72 http cache https://registry.npmmirror.com/sisteransi 66ms (cache hit)
+73 silly packumentCache full:https://registry.npmmirror.com/sisteransi set size:16245 disposed:false
+74 http cache https://registry.npmmirror.com/strip-ansi 69ms (cache hit)
+75 silly packumentCache full:https://registry.npmmirror.com/strip-ansi set size:39163 disposed:false
+76 http cache https://registry.npmmirror.com/kleur 70ms (cache hit)
+77 silly packumentCache full:https://registry.npmmirror.com/kleur set size:43285 disposed:false
+78 silly placeDep node_modules/uipro-cli cli-cursor@5.0.0 OK for: ora@8.2.0 want: ^5.0.0
+79 silly placeDep node_modules/uipro-cli cli-spinners@2.9.2 OK for: ora@8.2.0 want: ^2.9.2
+80 silly placeDep node_modules/uipro-cli is-interactive@2.0.0 OK for: ora@8.2.0 want: ^2.0.0
+81 silly placeDep node_modules/uipro-cli is-unicode-supported@2.1.0 OK for: ora@8.2.0 want: ^2.0.0
+82 silly placeDep node_modules/uipro-cli log-symbols@6.0.0 OK for: ora@8.2.0 want: ^6.0.0
+83 silly placeDep node_modules/uipro-cli stdin-discarder@0.2.2 OK for: ora@8.2.0 want: ^0.2.2
+84 silly placeDep node_modules/uipro-cli string-width@7.2.0 OK for: ora@8.2.0 want: ^7.2.0
+85 silly placeDep node_modules/uipro-cli strip-ansi@7.2.0 OK for: ora@8.2.0 want: ^7.1.0
+86 silly fetch manifest restore-cursor@^5.0.0
+87 silly packumentCache full:https://registry.npmmirror.com/restore-cursor cache-miss
+88 silly fetch manifest is-unicode-supported@^1.3.0
+89 silly packumentCache full:https://registry.npmmirror.com/is-unicode-supported cache-hit
+90 silly fetch manifest emoji-regex@^10.3.0
+91 silly packumentCache full:https://registry.npmmirror.com/emoji-regex cache-miss
+92 silly fetch manifest get-east-asian-width@^1.0.0
+93 silly packumentCache full:https://registry.npmmirror.com/get-east-asian-width cache-miss
+94 silly fetch manifest ansi-regex@^6.2.2
+95 silly packumentCache full:https://registry.npmmirror.com/ansi-regex cache-miss
+96 http cache https://registry.npmmirror.com/restore-cursor 27ms (cache hit)
+97 silly packumentCache full:https://registry.npmmirror.com/restore-cursor set size:15194 disposed:false
+98 http cache https://registry.npmmirror.com/get-east-asian-width 27ms (cache hit)
+99 silly packumentCache full:https://registry.npmmirror.com/get-east-asian-width set size:19257 disposed:false
+100 http cache https://registry.npmmirror.com/ansi-regex 27ms (cache hit)
+101 silly packumentCache full:https://registry.npmmirror.com/ansi-regex set size:40160 disposed:false
+102 http cache https://registry.npmmirror.com/emoji-regex 31ms (cache hit)
+103 silly packumentCache full:https://registry.npmmirror.com/emoji-regex set size:78767 disposed:false
+104 silly placeDep node_modules/uipro-cli restore-cursor@5.1.0 OK for: cli-cursor@5.0.0 want: ^5.0.0
+105 silly fetch manifest onetime@^7.0.0
+106 silly packumentCache full:https://registry.npmmirror.com/onetime cache-miss
+107 silly fetch manifest signal-exit@^4.1.0
+108 silly packumentCache full:https://registry.npmmirror.com/signal-exit cache-miss
+109 http cache https://registry.npmmirror.com/signal-exit 10ms (cache hit)
+110 silly packumentCache full:https://registry.npmmirror.com/signal-exit set size:51671 disposed:false
+111 http cache https://registry.npmmirror.com/onetime 13ms (cache hit)
+112 silly packumentCache full:https://registry.npmmirror.com/onetime set size:25619 disposed:false
+113 silly placeDep node_modules/uipro-cli/node_modules/log-symbols is-unicode-supported@1.3.0 OK for: log-symbols@6.0.0 want: ^1.3.0
+114 silly placeDep node_modules/uipro-cli kleur@3.0.3 OK for: prompts@2.4.2 want: ^3.0.3
+115 silly placeDep node_modules/uipro-cli sisteransi@1.0.5 OK for: prompts@2.4.2 want: ^1.0.5
+116 silly placeDep node_modules/uipro-cli onetime@7.0.0 OK for: restore-cursor@5.1.0 want: ^7.0.0
+117 silly placeDep node_modules/uipro-cli signal-exit@4.1.0 OK for: restore-cursor@5.1.0 want: ^4.1.0
+118 silly fetch manifest mimic-function@^5.0.0
+119 silly packumentCache full:https://registry.npmmirror.com/mimic-function cache-miss
+120 http cache https://registry.npmmirror.com/mimic-function 9ms (cache hit)
+121 silly packumentCache full:https://registry.npmmirror.com/mimic-function set size:6621 disposed:false
+122 silly placeDep node_modules/uipro-cli mimic-function@5.0.1 OK for: onetime@7.0.0 want: ^5.0.0
+123 silly placeDep node_modules/uipro-cli emoji-regex@10.6.0 OK for: string-width@7.2.0 want: ^10.3.0
+124 silly placeDep node_modules/uipro-cli get-east-asian-width@1.5.0 OK for: string-width@7.2.0 want: ^1.0.0
+125 silly placeDep node_modules/uipro-cli ansi-regex@6.2.2 OK for: strip-ansi@7.2.0 want: ^6.2.2
+126 silly reify moves {}
+127 verbose stack Error: EPERM: operation not permitted, mkdir 'D:\nodejs\node_global\node_modules\uipro-cli'
+127 verbose stack     at async mkdir (node:internal/fs/promises:858:10)
+127 verbose stack     at async D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:576:20
+127 verbose stack     at async Promise.allSettled (index 0)
+127 verbose stack     at async [reifyPackages] (D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:313:11)
+127 verbose stack     at async Arborist.reify (D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:125:5)
+127 verbose stack     at async Install.exec (D:\nodejs\node_global\node_modules\npm\lib\commands\install.js:150:5)
+127 verbose stack     at async Npm.exec (D:\nodejs\node_global\node_modules\npm\lib\npm.js:208:9)
+127 verbose stack     at async module.exports (D:\nodejs\node_global\node_modules\npm\lib\cli\entry.js:67:5)
+128 error code EPERM
+129 error syscall mkdir
+130 error path D:\nodejs\node_global\node_modules\uipro-cli
+131 error errno -4048
+132 error Error: EPERM: operation not permitted, mkdir 'D:\nodejs\node_global\node_modules\uipro-cli'
+132 error     at async mkdir (node:internal/fs/promises:858:10)
+132 error     at async D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:576:20
+132 error     at async Promise.allSettled (index 0)
+132 error     at async [reifyPackages] (D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:313:11)
+132 error     at async Arborist.reify (D:\nodejs\node_global\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\reify.js:125:5)
+132 error     at async Install.exec (D:\nodejs\node_global\node_modules\npm\lib\commands\install.js:150:5)
+132 error     at async Npm.exec (D:\nodejs\node_global\node_modules\npm\lib\npm.js:208:9)
+132 error     at async module.exports (D:\nodejs\node_global\node_modules\npm\lib\cli\entry.js:67:5) {
+132 error   errno: -4048,
+132 error   code: 'EPERM',
+132 error   syscall: 'mkdir',
+132 error   path: 'D:\\nodejs\\node_global\\node_modules\\uipro-cli'
+132 error }
+133 error
+133 error The operation was rejected by your operating system.
+133 error It's possible that the file was already in use (by a text editor or antivirus),
+133 error or that you lack permissions to access it.
+133 error
+133 error If you believe this might be a permissions issue, please double-check the
+133 error permissions of the file and its containing directories, or try running
+133 error the command again as root/Administrator.
+134 silly unfinished npm timer reify 1775636626308
+135 silly unfinished npm timer reify:createSparse 1775636626741
+136 verbose cwd D:\pbl6\Project
+137 verbose os Windows_NT 10.0.26100
+138 verbose node v20.18.0
+139 verbose npm  v11.6.2
+140 verbose exit -4048
+141 verbose code -4048
+142 error A complete log of this run can be found in: D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-08T08_23_45_299Z-debug-0.log
