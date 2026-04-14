@@ -10,6 +10,10 @@ class User(AbstractUser):
     # 其他字段
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='头像')
     phone_number = models.CharField(max_length=11, blank=True, null=True, verbose_name='手机号')
+    student_id = models.CharField(max_length=8, verbose_name='学号', default='00000000')
+    name = models.CharField(max_length=50, verbose_name='姓名', default='')
+    grade = models.CharField(max_length=20, verbose_name='年级', default='')
+    major = models.CharField(max_length=100, verbose_name='专业', default='')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     

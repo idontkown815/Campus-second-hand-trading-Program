@@ -56,11 +56,43 @@
                         <form method="POST">
                             {% csrf_token %}
                             <div class="mb-3">
-                                <label for="id_username" class="form-label">用户名</label>
-                                {{ form.username }}
-                                {% if form.username.errors %}
+                                <label for="id_name" class="form-label">姓名</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
                                     <div class="text-danger">
-                                        {{ form.username.errors }}
+                                        {{ form.name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_student_id" class="form-label">学号</label>
+                                {{ form.student_id }}
+                                {% if form.student_id.help_text %}
+                                    <div class="form-text text-muted">
+                                        {{ form.student_id.help_text }}
+                                    </div>
+                                {% endif %}
+                                {% if form.student_id.errors %}
+                                    <div class="text-danger">
+                                        {{ form.student_id.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_grade" class="form-label">年级</label>
+                                {{ form.grade }}
+                                {% if form.grade.errors %}
+                                    <div class="text-danger">
+                                        {{ form.grade.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_major" class="form-label">专业</label>
+                                {{ form.major }}
+                                {% if form.major.errors %}
+                                    <div class="text-danger">
+                                        {{ form.major.errors }}
                                     </div>
                                 {% endif %}
                             </div>

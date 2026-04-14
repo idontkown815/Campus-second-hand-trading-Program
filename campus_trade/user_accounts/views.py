@@ -8,9 +8,12 @@ def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'注册成功！欢迎 {username}')
+            # 使用学号作为用户名
+            user = form.save(commit=False)
+            user.username = form.cleaned_data.get('student_id')
+            user.save()
+            name = form.cleaned_data.get('name')
+            messages.success(request, f'注册成功！欢迎 {name}')
             return redirect('home')
     else:
         form = UserRegisterForm()
