@@ -3,8 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserSerializer
+
+User = get_user_model()
 
 
 class RegisterView(APIView):
@@ -50,7 +53,42 @@ class RegisterView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+class LoginView(APIView):
+    """用户登录视图"""
+    permission_classes = [AllowAny]
 
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            student_id = serializer.validated_data.get('student_id')
+            password = serializer.validated_data.get('password')
+            try:
+                user = User.objects.get(student_id=student_id)
+            except User.DoesNotExist:
+                return Response({
+                    'code': 401,
+                    'message': '学号或密码错误'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            if not user.check_password(password):
+                return Response({
+                    'code': 401,
+                    'message': '学号或密码错误'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'code': 200,
+                'message': '登录成功',
+                'data': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'user': UserSerializer(user).data
+                }
+            })
+        return Response({
+            'code': 400,
+            'message': '登录失败',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileView(APIView):
