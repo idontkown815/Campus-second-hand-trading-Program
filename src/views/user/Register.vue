@@ -76,9 +76,9 @@ const rules = {
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validatePassword2, trigger: 'blur' }
   ],
-  name: [{ required: false, message: '请输入姓名', trigger: 'blur' }],
-  grade: [{ required: false, message: '请输入年级', trigger: 'blur' }],
-  major: [{ required: false, message: '请输入专业', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  grade: [{ required: true, message: '请输入年级', trigger: 'blur' }],
+  major: [{ required: true, message: '请输入专业', trigger: 'blur' }]
 }
 
 const formRef = ref(null)

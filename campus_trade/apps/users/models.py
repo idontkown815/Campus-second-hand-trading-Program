@@ -4,7 +4,7 @@ from django.db import models
 
 class User(AbstractUser):
     """自定义用户模型"""
-    name = models.CharField(max_length=50, unique=True, verbose_name="姓名", null=True, blank=True)
+    name = models.CharField(max_length=50, verbose_name="姓名", null=False, blank=False, default="")
     student_id = models.CharField(max_length=8, unique=True, verbose_name="学号", error_messages={
         'unique': '该学号已被注册'
     })

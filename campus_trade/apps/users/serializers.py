@@ -26,7 +26,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['student_id', 'password', 'password2', 'name', 'grade', 'major']
         extra_kwargs = {
-            'name': {'required': False},
+            'name': {'required': True},
             'grade': {'required': False},
             'major': {'required': False}
         }
