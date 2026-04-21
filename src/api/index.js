@@ -18,8 +18,14 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response) {
-      const { code, message } = error.response.data
-      ElMessage.error(message || '请求失败')
+      const { status, data } = error.response
+      // 401错误由页面自己处理，不显示全局错误
+      if (status !== 401) {
+        const message = data?.message || '请求失败'
+        ElMessage.error(message)
+      }
+    } else {
+      ElMessage.error('网络错误，请检查网络连接')
     }
     return Promise.reject(error)
   }
@@ -28,6 +34,9 @@ api.interceptors.response.use(
 export default {
   register(data) {
     return api.post('/users/register/', data)
+  },
+  login(data) {
+    return api.post('/users/login/', data)
   },
   getProfile() {
     return api.get('/users/profile/')

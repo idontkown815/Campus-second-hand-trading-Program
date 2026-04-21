@@ -7,11 +7,18 @@
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
               <span>欢迎，{{ userStore.user?.name }}</span>
+              <div class="avatar" @click="goToMy">
+                <img v-if="userStore.user?.avatar" :src="userStore.user.avatar" class="avatar-img" />
+                <div v-else class="avatar-placeholder">{{ userStore.user?.name?.charAt(0) || 'U' }}</div>
+              </div>
               <el-button @click="handleLogout">退出</el-button>
             </template>
             <template v-else>
               <el-button @click="$router.push('/login')">登录</el-button>
               <el-button type="primary" @click="$router.push('/register')">注册</el-button>
+              <div class="avatar" @click="$router.push('/my')">
+                <div class="avatar-placeholder">U</div>
+              </div>
             </template>
           </div>
         </div>
@@ -64,7 +71,10 @@ const goToDetail = (id) => {
 const handleLogout = () => {
   userStore.logout()
   ElMessage.success('已退出登录')
-  router.push('/login')
+}
+
+const goToMy = () => {
+  router.push('/my')
 }
 
 onMounted(() => {
@@ -98,6 +108,33 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.avatar {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .home-container {
