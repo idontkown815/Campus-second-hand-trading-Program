@@ -7,6 +7,7 @@
 6 silly config load:file:D:\nodejs\node_global\etc\npmrc
 7 verbose title npm run dev
 8 verbose argv "run" "dev"
-9 verbose logfile logs-max:10 dir:D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-20T13_35_17_682Z-
-10 verbose logfile D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-20T13_35_17_682Z-debug-0.log
-11 silly logfile done cleaning log files
+9 verbose logfile logs-max:10 dir:D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-22T09_02_24_116Z-
+10 verbose logfile D:\pbl6\Project\nodejs\node_cache\_logs\2026-04-22T09_02_24_116Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files

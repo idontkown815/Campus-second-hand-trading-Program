@@ -52,5 +52,14 @@ export default {
   },
   createProduct(data) {
     return api.post('/products/', data)
+  },
+  getCategories() {
+    return api.get('/products/categories/')
+  },
+  getMyProducts() {
+    return api.get('/products/my_products/')
+  },
+  takeDownProduct(id) {
+    return api.post(`/products/${id}/take_down/`)
   }
 }

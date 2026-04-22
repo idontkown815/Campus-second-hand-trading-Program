@@ -25,7 +25,12 @@
       </el-header>
       <el-main>
         <div class="product-section">
-          <h2>最新商品</h2>
+          <div class="section-header">
+            <h2>最新商品</h2>
+            <div class="section-actions">
+              <el-button type="primary" @click="goToPublish" v-if="userStore.isLoggedIn">发布商品</el-button>
+            </div>
+          </div>
           <el-row :gutter="20">
             <el-col :span="8" v-for="product in products" :key="product.id">
               <el-card class="product-card" @click="goToDetail(product.id)">
@@ -76,6 +81,12 @@ const handleLogout = () => {
 const goToMy = () => {
   router.push('/my')
 }
+
+const goToPublish = () => {
+  router.push('/product/publish')
+}
+
+
 
 onMounted(() => {
   loadProducts()
@@ -151,6 +162,18 @@ onMounted(() => {
 .product-section h2 {
   margin-bottom: 20px;
   color: #333;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .product-card {

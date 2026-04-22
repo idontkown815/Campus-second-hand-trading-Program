@@ -12,12 +12,11 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """商品序列化器"""
     seller = serializers.StringRelatedField()
-    category = serializers.StringRelatedField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'seller', 'title', 'description', 'price', 'category',
+            'id', 'seller', 'title', 'description', 'price', 'stock', 'category',
             'images', 'campus_location', 'building_location', 'status',
             'created_at', 'updated_at'
         ]

@@ -141,7 +141,7 @@ const goToOrders = (type) => {
 }
 
 const goToMyProducts = () => {
-  ElMessage.info('我的发布功能即将上线')
+  router.push('/my/products')
 }
 
 const goToFavorites = () => {
