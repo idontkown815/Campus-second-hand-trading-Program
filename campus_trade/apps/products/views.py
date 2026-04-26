@@ -32,7 +32,35 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Product.objects.filter(is_deleted=False).exclude(status='rejected')
+        queryset = Product.objects.filter(is_deleted=False).exclude(status='rejected')
+
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(title__icontains=search) | queryset.filter(description__icontains=search)
+
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category_id=category)
+
+        min_price = self.request.query_params.get('min_price', None)
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+
+        max_price = self.request.query_params.get('max_price', None)
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+
+        campus = self.request.query_params.get('campus', None)
+        if campus:
+            queryset = queryset.filter(campus_location=campus)
+
+        sort = self.request.query_params.get('sort', None)
+        if sort == 'price_asc':
+            queryset = queryset.order_by('price')
+        elif sort == 'price_desc':
+            queryset = queryset.order_by('-price')
+
+        return queryset
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
