@@ -4,6 +4,10 @@
       <el-header class="header">
         <div class="header-content">
           <h1>校园二手交易平台</h1>
+          <div class="header-nav">
+            <el-button type="text" @click="$router.push('/')">首页</el-button>
+            <el-button type="text" @click="$router.push('/products')">商品</el-button>
+          </div>
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
               <span>欢迎，{{ userStore.user?.name }}</span>
@@ -108,6 +112,12 @@ onMounted(() => {
   padding: 0 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.header-nav {
+  display: flex;
+  gap: 20px;
+  margin: 0 20px;
 }
 
 .header-content h1 {
