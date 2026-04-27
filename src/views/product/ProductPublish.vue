@@ -3,7 +3,7 @@
     <el-card class="publish-card">
       <template #header>
         <div class="header-content">
-          <h2>发布商品</h2>
+          <h2>{{ isEditMode ? '编辑商品' : '发布商品' }}</h2>
           <el-steps :active="activeStep" process-status="wait" align-center>
             <el-step title="基本信息" />
             <el-step title="商品图片" />
@@ -70,6 +70,7 @@
                   :on-success="handleUploadSuccess"
                   :on-error="handleUploadError"
                   :before-upload="beforeUpload"
+                  :file-list="uploadedFiles"
                   multiple
                   :limit="9"
                   :on-exceed="handleExceed"
@@ -83,12 +84,12 @@
                   <template #file="{ file }">
                     <div class="image-item">
                       <img :src="file.url" alt="商品图片" />
-                      <el-icon class="delete-icon" @click.stop="removeImage(form.images.indexOf(file.url))"><Delete /></el-icon>
+                      <el-icon class="delete-icon" @click.stop="removeImage(file)"><Delete /></el-icon>
                     </div>
                   </template>
                 </el-upload>
-                <div v-if="form.images.length === 0" class="image-tip">请上传商品图片，最多9张</div>
-                <div v-else class="image-count">{{ form.images.length }}/9</div>
+                <div v-if="form.image_list.length === 0" class="image-tip">请上传商品图片，最多9张</div>
+                <div v-else class="image-count">{{ form.image_list.length }}/9</div>
               </div>
             </el-form-item>
           </el-form>
@@ -142,7 +143,7 @@
             <div class="confirm-item">
               <span class="label">商品图片：</span>
               <div class="image-preview">
-                <img v-for="(img, index) in form.images" :key="index" :src="img" alt="预览图片" />
+                <img v-for="(img, index) in form.image_list" :key="index" :src="'/uploads/' + img" alt="预览图片" />
               </div>
             </div>
             <el-divider />
@@ -162,16 +163,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useProductStore } from '../../stores/product'
 import { useUserStore } from '../../stores/user'
 import { ElMessage } from 'element-plus'
 import { Delete, Plus, Picture, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const productStore = useProductStore()
 const userStore = useUserStore()
+
+const productId = computed(() => route.query.id)
+const isEditMode = computed(() => !!productId.value)
 
 const activeStep = ref(0)
 
@@ -183,7 +188,7 @@ const form = ref({
   category: null,
   campus_location: '',
   building_location: '',
-  images: []
+  image_list: []
 })
 
 const rules = {
@@ -211,17 +216,51 @@ const rules = {
   building_location: [
     { required: true, message: '请输入楼栋位置', trigger: 'blur' }
   ],
-  images: [
+  image_list: [
     { required: true, message: '请上传商品图片', trigger: 'change' }
   ]
 }
 
 const formRef = ref(null)
 const loading = ref(false)
+const uploadedFiles = ref([])
+
+const loadProductDetail = async () => {
+  if (!isEditMode.value) return
+  
+  try {
+    const product = await productStore.fetchProduct(productId.value)
+    // 提取文件名列表（不带 /uploads/ 前缀）
+    const imageNames = (product.images || []).map(url => url.split('/').pop())
+    form.value = {
+      title: product.title,
+      description: product.description,
+      category: product.category,
+      campus_location: product.campus_location,
+      building_location: product.building_location,
+      price: product.price,
+      stock: product.stock,
+      image_list: imageNames
+    }
+    // 转换图片路径为上传组件需要的格式
+    uploadedFiles.value = (product.images || []).map(url => {
+      return {
+        name: url.split('/').pop(),
+        url: url
+      }
+    })
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载商品信息失败')
+  }
+}
 
 const handleUploadSuccess = (response, uploadFile) => {
   if (response && response.data && response.data.url) {
-    form.value.images.push(response.data.url)
+    // 存储相对路径到form.image_list
+    form.value.image_list.push(response.data.url)
+    // 为el-upload组件设置完整的预览路径
+    uploadFile.url = '/uploads/' + response.data.url
     ElMessage.success('图片上传成功')
   } else {
     ElMessage.error('图片上传失败')
@@ -250,9 +289,29 @@ const handleExceed = () => {
   ElMessage.warning('最多只能添加9张图片')
 }
 
-const removeImage = (index) => {
+const removeImage = (file) => {
+  let filename = file.name
+  // 如果是编辑模式已有图片，form.image_list中存储的是完整路径
+  // 需要从file.url中提取文件名
+  if (isEditMode.value && file.url && file.url.includes('/uploads/')) {
+    filename = file.url.split('/uploads/').pop()
+  }
+  
+  // 从form.image_list中删除
+  const fullPath = '/uploads/' + filename
+  const index = form.value.image_list.indexOf(filename)
+  const fullPathIndex = form.value.image_list.indexOf(fullPath)
+  
   if (index !== -1) {
-    form.value.images.splice(index, 1)
+    form.value.image_list.splice(index, 1)
+  } else if (fullPathIndex !== -1) {
+    form.value.image_list.splice(fullPathIndex, 1)
+  }
+  
+  // 从uploadedFiles中删除
+  const uploadedIndex = uploadedFiles.value.findIndex(f => f.name === filename || f.url === file.url)
+  if (uploadedIndex !== -1) {
+    uploadedFiles.value.splice(uploadedIndex, 1)
   }
 }
 
@@ -266,7 +325,7 @@ const nextStep = async () => {
     const valid = await formRef.value.validateField(['title', 'description', 'category', 'campus_location', 'building_location']).catch(() => false)
     if (!valid) return
   } else if (activeStep.value === 1) {
-    const valid = await formRef.value.validateField('images').catch(() => false)
+    const valid = await formRef.value.validateField('image_list').catch(() => false)
     if (!valid) return
   } else if (activeStep.value === 2) {
     const valid = await formRef.value.validateField(['price', 'stock']).catch(() => false)
@@ -294,21 +353,30 @@ const handlePublish = async () => {
 
   loading.value = true
   try {
-    await productStore.createProduct({
+    const productData = {
       title: form.value.title,
       description: form.value.description,
       price: form.value.price,
       stock: form.value.stock,
       category: form.value.category,
-      images: form.value.images,
+      image_list: form.value.image_list,
       campus_location: form.value.campus_location,
       building_location: form.value.building_location
-    })
-    ElMessage.success('发布成功')
+    }
+    
+    if (isEditMode.value) {
+      // 编辑模式
+      await productStore.updateProduct(productId.value, productData)
+      ElMessage.success('修改成功')
+    } else {
+      // 发布模式
+      await productStore.createProduct(productData)
+      ElMessage.success('发布成功')
+    }
     router.push('/my/products')
   } catch (error) {
     console.error(error)
-    ElMessage.error('发布失败')
+    ElMessage.error(isEditMode.value ? '修改失败' : '发布失败')
   } finally {
     loading.value = false
   }
@@ -316,6 +384,9 @@ const handlePublish = async () => {
 
 onMounted(() => {
   // 无需获取分类，使用固定分类选项
+  if (isEditMode.value) {
+    loadProductDetail()
+  }
 })
 </script>
 

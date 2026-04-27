@@ -40,7 +40,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         category = self.request.query_params.get('category', None)
         if category:
-            queryset = queryset.filter(category_id=category)
+            queryset = queryset.filter(category=category)
 
         min_price = self.request.query_params.get('min_price', None)
         if min_price:
@@ -152,19 +152,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         file = request.FILES['file']
         fs = FileSystemStorage()
         
-        # 确保上传目录存在
-        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
-        if not os.path.exists(upload_dir):
-            os.makedirs(upload_dir)
+        # 保存文件（直接保存到uploads目录）
+        filename = fs.save(file.name, file)
         
-        # 保存文件
-        filename = fs.save(os.path.join('uploads', file.name), file)
-        url = fs.url(filename)
-        
+        # 只返回文件名，而不是完整URL
+        # 这样存储到数据库的是相对路径，序列化器会根据当前环境构建完整URL
         return Response({
             'code': 200,
             'message': '上传成功',
-            'data': {'url': url}
+            'data': {'url': filename}
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
