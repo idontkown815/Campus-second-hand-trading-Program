@@ -27,9 +27,12 @@
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="发布时间" width="180" />
-          <el-table-column label="操作" width="150">
+          <el-table-column label="操作" width="200">
             <template #default="scope">
-              <el-button type="danger" @click="takeDownProduct(scope.row.id)" v-if="scope.row.status !== 'rejected'">
+              <el-button type="primary" size="small" @click="editProduct(scope.row.id)" v-if="scope.row.status !== 'rejected'">
+                编辑
+              </el-button>
+              <el-button type="danger" size="small" @click="takeDownProduct(scope.row.id)" v-if="scope.row.status !== 'rejected'">
                 下架
               </el-button>
               <el-tag v-else>已下架</el-tag>
@@ -110,6 +113,10 @@ const takeDownProduct = async (id) => {
     console.error(error)
     ElMessage.error('下架失败')
   }
+}
+
+const editProduct = (id) => {
+  router.push(`/product/publish?id=${id}`)
 }
 
 onMounted(() => {

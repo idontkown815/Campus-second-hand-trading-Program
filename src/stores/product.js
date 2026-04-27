@@ -41,6 +41,11 @@ export const useProductStore = defineStore('product', {
     async takeDownProduct(id) {
       const response = await api.takeDownProduct(id)
       return response.data
+    },
+
+    async updateProduct(id, data) {
+      const response = await api.updateProduct(id, data)
+      return response.data
     }
   }
 })

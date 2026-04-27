@@ -61,5 +61,8 @@ export default {
   },
   takeDownProduct(id) {
     return api.post(`/products/${id}/take_down/`)
+  },
+  updateProduct(id, data) {
+    return api.put(`/products/${id}/`, data)
   }
 }
