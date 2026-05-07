@@ -62,6 +62,11 @@
             </template>
             <p>{{ product.description }}</p>
           </el-card>
+          <ProductComment
+            v-if="product.id && product.seller_id"
+            :product-id="product.id"
+            :product-owner-id="product.seller_id"
+          />
         </div>
         <el-empty v-else description="商品不存在"></el-empty>
       </el-main>
@@ -73,6 +78,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
+import ProductComment from './ProductComment.vue'
 import api from '../../api'
 import { ElMessage } from 'element-plus'
 
