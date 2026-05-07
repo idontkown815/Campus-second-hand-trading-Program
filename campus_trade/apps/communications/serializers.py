@@ -1,5 +1,16 @@
 from rest_framework import serializers
-from .models import Conversation, Message, Favorite, Report, Block
+from .models import Conversation, Message, Favorite, Report, Block, Comment
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """评论序列化器"""
+    user = serializers.StringRelatedField(read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Comment._meta.get_field('product').related_model.objects.all())
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'user_id', 'product', 'content', 'created_at']
 
 
 class MessageSerializer(serializers.ModelSerializer):

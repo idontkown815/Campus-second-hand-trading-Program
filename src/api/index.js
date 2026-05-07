@@ -19,9 +19,13 @@ api.interceptors.response.use(
   error => {
     if (error.response) {
       const { status, data } = error.response
-      // 401错误由页面自己处理，不显示全局错误
-      if (status !== 401) {
-        const message = data?.message || '请求失败'
+      const message = data?.message || '请求失败'
+      if (status === 401) {
+        ElMessage.error('登录已过期，请重新登录')
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        window.location.href = '/login'
+      } else {
         ElMessage.error(message)
       }
     } else {
@@ -64,5 +68,14 @@ export default {
   },
   updateProduct(id, data) {
     return api.put(`/products/${id}/`, data)
+  },
+  getComments(productId) {
+    return api.get('/communications/comments/', { params: { product_id: productId } })
+  },
+  addComment(data) {
+    return api.post('/communications/comments/', data)
+  },
+  deleteComment(id) {
+    return api.delete(`/communications/comments/${id}/`)
   }
 }

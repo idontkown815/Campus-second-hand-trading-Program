@@ -13,6 +13,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """商品序列化器"""
     seller = serializers.StringRelatedField()
+    seller_id = serializers.IntegerField(source='seller.id', read_only=True)
     images = serializers.SerializerMethodField()
     image_list = serializers.ListField(
         child=serializers.CharField(),
@@ -23,7 +24,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'seller', 'title', 'description', 'price', 'stock', 'category',
+            'id', 'seller', 'seller_id', 'title', 'description', 'price', 'stock', 'category',
             'images', 'image_list', 'campus_location', 'building_location', 'status',
             'created_at', 'updated_at'
         ]

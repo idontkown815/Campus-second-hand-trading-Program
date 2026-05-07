@@ -349,34 +349,39 @@ const handlePublish = async () => {
   }
 
   const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid) {
+    ElMessage.error('表单验证失败，请检查填写的信息')
+    return
+  }
 
   loading.value = true
   try {
     const productData = {
       title: form.value.title,
       description: form.value.description,
-      price: form.value.price,
-      stock: form.value.stock,
+      price: parseFloat(form.value.price),
+      stock: parseInt(form.value.stock),
       category: form.value.category,
       image_list: form.value.image_list,
       campus_location: form.value.campus_location,
       building_location: form.value.building_location
     }
     
+    console.log('准备发送的商品数据:', productData)
+    
     if (isEditMode.value) {
-      // 编辑模式
       await productStore.updateProduct(productId.value, productData)
       ElMessage.success('修改成功')
     } else {
-      // 发布模式
       await productStore.createProduct(productData)
       ElMessage.success('发布成功')
     }
     router.push('/my/products')
   } catch (error) {
-    console.error(error)
-    ElMessage.error(isEditMode.value ? '修改失败' : '发布失败')
+    console.error('发布失败详情:', error)
+    console.error('错误响应:', error.response?.data)
+    const errorMsg = error.response?.data?.message || (isEditMode.value ? '修改失败' : '发布失败')
+    ElMessage.error(errorMsg)
   } finally {
     loading.value = false
   }

@@ -86,14 +86,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         })
 
     def create(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger('django')
+        logger.info(f"收到商品发布请求，用户: {request.user}, 数据: {request.data}")
+        
         serializer = self.get_serializer(data=request.data, context={'request': request})
         if serializer.is_valid():
+            logger.info("序列化器验证通过")
             serializer.save()
             return Response({
                 'code': 200,
                 'message': '发布成功',
                 'data': serializer.data
             }, status=status.HTTP_201_CREATED)
+        logger.error(f"序列化器验证失败，错误: {serializer.errors}")
         return Response({
             'code': 400,
             'message': '发布失败',

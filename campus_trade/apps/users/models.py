@@ -19,3 +19,7 @@ class User(AbstractUser):
         db_table = 'users'
         verbose_name = '用户'
         verbose_name_plural = '用户'
+
+    def __str__(self):
+        # 返回用户姓名，如果姓名为空则返回学号
+        return self.name if self.name else self.student_id
