@@ -43,6 +43,11 @@ export const useProductStore = defineStore('product', {
       return response.data
     },
 
+    async putOnShelf(id) {
+      const response = await api.putOnShelf(id)
+      return response.data
+    },
+
     async updateProduct(id, data) {
       const response = await api.updateProduct(id, data)
       return response.data
