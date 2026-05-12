@@ -32,7 +32,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Product.objects.filter(is_deleted=False).exclude(status='rejected')
+        queryset = Product.objects.filter(is_deleted=False)
+
+        # 商品大厅只显示在售且库存大于0的商品
+        queryset = queryset.filter(status='available', stock__gt=0)
 
         search = self.request.query_params.get('search', None)
         if search:
@@ -77,7 +80,28 @@ class ProductViewSet(viewsets.ModelViewSet):
         })
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
+        # 对于商品详情，使用不过滤状态的查询
+        queryset = Product.objects.filter(is_deleted=False)
+        try:
+            instance = queryset.get(pk=kwargs.get('pk'))
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 允许卖家和买家访问商品详情
+        is_buyer = request.user and instance.transactions.filter(buyer=request.user).exists()
+        is_seller = request.user and instance.seller == request.user
+        
+        if not (is_buyer or is_seller) and instance.status != 'available':
+            return Response({
+                'code': 403,
+                'message': '无权访问此商品',
+                'data': None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         serializer = self.get_serializer(instance)
         return Response({
             'code': 200,
@@ -188,6 +212,43 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response({
                 'code': 200,
                 'message': '商品已下架',
+                'data': None
+            })
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def put_on_shelf(self, request, pk=None):
+        """上架商品"""
+        try:
+            product = self.get_object()
+            # 检查是否是商品的发布者
+            if product.seller != request.user:
+                return Response({
+                    'code': 403,
+                    'message': '无权操作此商品',
+                    'data': None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # 检查商品状态是否允许上架（允许待审核、已下架、锁定中的商品上架）
+            if product.status not in ['pending', 'rejected', 'locked']:
+                return Response({
+                    'code': 400,
+                    'message': '只有待审核、已下架或锁定中的商品可以上架',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 将商品状态改为在售
+            product.status = 'available'
+            product.save()
+            
+            return Response({
+                'code': 200,
+                'message': '商品已上架',
                 'data': None
             })
         except Product.DoesNotExist:

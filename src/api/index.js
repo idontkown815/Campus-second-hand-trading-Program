@@ -66,6 +66,9 @@ export default {
   takeDownProduct(id) {
     return api.post(`/products/${id}/take_down/`)
   },
+  putOnShelf(id) {
+    return api.post(`/products/${id}/put_on_shelf/`)
+  },
   updateProduct(id, data) {
     return api.put(`/products/${id}/`, data)
   },
@@ -77,5 +80,26 @@ export default {
   },
   deleteComment(id) {
     return api.delete(`/communications/comments/${id}/`)
+  },
+  getTransactions() {
+    return api.get('/transactions/')
+  },
+  createTransaction(productId) {
+    return api.post('/transactions/', { product_id: productId })
+  },
+  payTransaction(id) {
+    return api.post(`/transactions/${id}/pay/`)
+  },
+  cancelTransaction(id) {
+    return api.post(`/transactions/${id}/cancel/`)
+  },
+  shipTransaction(id) {
+    return api.post(`/transactions/${id}/ship/`)
+  },
+  completeTransaction(id) {
+    return api.post(`/transactions/${id}/complete/`)
+  },
+  refundTransaction(id) {
+    return api.post(`/transactions/${id}/refund/`)
   }
 }

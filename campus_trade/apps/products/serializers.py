@@ -20,46 +20,71 @@ class ProductSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    transaction_status = serializers.SerializerMethodField()
+    buyer_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             'id', 'seller', 'seller_id', 'title', 'description', 'price', 'stock', 'category',
             'images', 'image_list', 'campus_location', 'building_location', 'status',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'transaction_status', 'buyer_id'
         ]
 
     def get_images(self, obj):
         """获取图片相对路径"""
         if not obj.images:
             return []
-        
-        # 处理图片列表，返回相对路径
+
         images = obj.images.split(',') if isinstance(obj.images, str) else obj.images
         full_images = []
         for img in images:
-            # 确保img是字符串
             if isinstance(img, str):
                 img = img.strip()
                 if img:
-                    # 直接返回相对路径，前端会通过Vite代理访问
                     full_images.append('/uploads/' + img)
         return full_images
 
+    def get_transaction_status(self, obj):
+        """获取交易状态用于显示"""
+        from apps.transactions.models import Transaction
+        try:
+            transaction = Transaction.objects.filter(product=obj).exclude(
+                status__in=['cancelled', 'expired']
+            ).select_related('buyer', 'seller').first()
+            if transaction:
+                return transaction.status
+        except Exception:
+            pass
+        return None
+
+    def get_buyer_id(self, obj):
+        """获取买家ID"""
+        from apps.transactions.models import Transaction
+        try:
+            transaction = Transaction.objects.filter(product=obj).exclude(
+                status__in=['cancelled', 'expired']
+            ).select_related('buyer').first()
+            if transaction:
+                return transaction.buyer.id
+        except Exception:
+            pass
+        return None
+
     def create(self, validated_data):
-        # 处理图片列表
         image_list = validated_data.pop('image_list', [])
         if image_list:
             validated_data['images'] = image_list
-        
-        # 设置卖家为当前用户
+
         validated_data['seller'] = self.context['request'].user
+
+        validated_data['status'] = 'available'
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # 处理图片列表
         image_list = validated_data.pop('image_list', None)
         if image_list is not None:
             instance.images = image_list
-        
+
         return super().update(instance, validated_data)
