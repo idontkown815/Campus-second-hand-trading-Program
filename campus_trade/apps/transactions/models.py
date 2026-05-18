@@ -1,15 +1,18 @@
 from django.db import models
 from django.conf import settings
-from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import timedelta
 
 
 class Transaction(models.Model):
     """交易模型"""
     STATUS_CHOICES = [
-        ('pending', '待确认'),
-        ('confirmed', '已确认'),
+        ('pending', '待付款'),
+        ('paid', '已付款'),
+        ('shipped', '已发货'),
         ('completed', '已完成'),
         ('cancelled', '已取消'),
+        ('expired', '已过期'),
     ]
 
     product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='transactions', verbose_name="商品")
@@ -26,7 +29,7 @@ class Transaction(models.Model):
         verbose_name_plural = '交易'
 
     def save(self, *args, **kwargs):
-        # 当交易状态变为已确认时，设置24小时锁定时间
-        if self.status == 'confirmed' and not self.locked_until:
-            self.locked_until = datetime.now() + timedelta(hours=24)
+        # 当交易状态变为待付款时，设置3小时锁定时间
+        if self.status == 'pending' and not self.locked_until:
+            self.locked_until = timezone.now() + timedelta(hours=3)
         super().save(*args, **kwargs)

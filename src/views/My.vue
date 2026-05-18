@@ -137,7 +137,14 @@ const goToProfile = () => {
 }
 
 const goToOrders = (type) => {
-  ElMessage.info('订单功能即将上线')
+  const tabMap = {
+    pending_payment: 'pending',
+    pending_shipment: 'paid',
+    pending_receipt: 'shipped',
+    completed: 'completed'
+  }
+  const tab = tabMap[type] || 'pending'
+  router.push({ path: '/orders', query: { tab } })
 }
 
 const goToMyProducts = () => {

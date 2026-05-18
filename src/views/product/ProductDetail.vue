@@ -27,6 +27,13 @@
               </el-carousel>
             </el-col>
             <el-col :span="12">
+              <div class="product-status-badge">
+                <el-tag v-if="product.status === 'available'" type="success" size="large">在售</el-tag>
+                <el-tag v-else-if="product.status === 'locked'" type="warning" size="large">锁定中</el-tag>
+                <el-tag v-else-if="product.status === 'sold'" type="danger" size="large">已售出</el-tag>
+                <el-tag v-else-if="product.status === 'pending'" type="info" size="large">待审核</el-tag>
+                <el-tag v-else type="info" size="large">{{ product.status }}</el-tag>
+              </div>
               <h2>{{ product.title }}</h2>
               <p class="price">¥{{ product.price }}</p>
               <el-divider></el-divider>
@@ -51,7 +58,40 @@
                 <span>{{ formatDate(product.created_at) }}</span>
               </div>
               <el-divider></el-divider>
-              <el-button type="primary" @click="contactSeller" style="width: 100%">
+              <template v-if="product.status === 'available'">
+                <el-button type="primary" @click="handleBuy" style="width: 100%" size="large">
+                  立即购买
+                </el-button>
+              </template>
+              <template v-else-if="product.status === 'locked'">
+                <div class="lock-info">
+                  <el-alert type="warning" :closable="false">
+                    <template #title>
+                      <p>该商品已被其他用户锁定</p>
+                      <p v-if="lockRemainingTime">剩余锁定时间：{{ lockRemainingTime }}</p>
+                    </template>
+                  </el-alert>
+                </div>
+              </template>
+              <template v-else-if="product.status === 'sold'">
+                <el-alert type="info" :closable="false" title="该商品已售出"></el-alert>
+              </template>
+              <template v-if="currentTransaction && currentTransaction.status === 'pending'">
+                <el-divider></el-divider>
+                <div class="transaction-panel">
+                  <h4>您的购买意向</h4>
+                  <el-alert type="warning" :closable="false">
+                    <template #title>
+                      <p>请在 {{ lockRemainingTime }} 内完成付款</p>
+                    </template>
+                  </el-alert>
+                  <div class="transaction-actions">
+                    <el-button type="primary" @click="handlePay" size="large">确认付款</el-button>
+                    <el-button @click="handleCancelTransaction" size="large">取消意向</el-button>
+                  </div>
+                </div>
+              </template>
+              <el-button type="default" @click="contactSeller" style="width: 100%; margin-top: 10px">
                 联系卖家
               </el-button>
             </el-col>
@@ -75,17 +115,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import ProductComment from './ProductComment.vue'
 import api from '../../api'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const product = ref(null)
+const currentTransaction = ref(null)
+const lockRemainingTime = ref('')
+let lockTimer = null
 
 const loadProduct = async () => {
   const id = route.params.id
@@ -97,6 +140,49 @@ const loadProduct = async () => {
   }
 }
 
+const loadMyTransaction = async () => {
+  if (!userStore.isLoggedIn) return
+
+  try {
+    const response = await api.getTransactions()
+    const transactions = response.data.data || []
+    currentTransaction.value = transactions.find(
+      t => t.product_id === product.value?.id && ['pending', 'paid', 'shipped'].includes(t.status)
+    )
+    updateLockTime()
+  } catch (error) {
+    console.error('加载交易信息失败:', error)
+  }
+}
+
+const updateLockTime = () => {
+  if (!currentTransaction.value?.locked_until) {
+    lockRemainingTime.value = ''
+    return
+  }
+
+  const remaining = currentTransaction.value.locked_remaining_seconds
+  if (remaining <= 0) {
+    lockRemainingTime.value = '已过期'
+    return
+  }
+
+  const hours = Math.floor(remaining / 3600)
+  const minutes = Math.floor((remaining % 3600) / 60)
+  const seconds = remaining % 60
+  lockRemainingTime.value = `${hours}小时${minutes}分${seconds}秒`
+}
+
+const startLockTimer = () => {
+  if (lockTimer) clearInterval(lockTimer)
+  lockTimer = setInterval(() => {
+    if (currentTransaction.value) {
+      currentTransaction.value.locked_remaining_seconds--
+      updateLockTime()
+    }
+  }, 1000)
+}
+
 const contactSeller = () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
@@ -104,6 +190,68 @@ const contactSeller = () => {
     return
   }
   console.log('联系卖家', product.value.seller)
+}
+
+const handleBuy = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    const response = await api.createTransaction(product.value.id)
+    if (response.data.code === 200) {
+      ElMessage.success('购买意向已创建，请在3小时内完成付款')
+      currentTransaction.value = response.data.data
+      product.value.status = 'locked'
+      startLockTimer()
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '创建购买意向失败')
+  }
+}
+
+const handlePay = async () => {
+  try {
+    const response = await api.payTransaction(currentTransaction.value.id)
+    if (response.data.code === 200) {
+      ElMessage.success('付款成功，等待卖家发货')
+      currentTransaction.value = response.data.data
+      product.value.status = 'sold'
+      if (lockTimer) {
+        clearInterval(lockTimer)
+        lockTimer = null
+      }
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '付款失败')
+  }
+}
+
+const handleCancelTransaction = async () => {
+  try {
+    await ElMessageBox.confirm('确定要取消购买意向吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await api.cancelTransaction(currentTransaction.value.id)
+    if (response.data.code === 200) {
+      ElMessage.success('已取消购买意向')
+      currentTransaction.value = null
+      product.value.status = 'available'
+      if (lockTimer) {
+        clearInterval(lockTimer)
+        lockTimer = null
+      }
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || '取消失败')
+    }
+  }
 }
 
 const formatDate = (dateString) => {
@@ -114,10 +262,23 @@ const formatDate = (dateString) => {
 const handleLogout = () => {
   userStore.logout()
   ElMessage.success('已退出登录')
+  router.push('/')
 }
 
-onMounted(() => {
-  loadProduct()
+onMounted(async () => {
+  await loadProduct()
+  if (userStore.isLoggedIn) {
+    await loadMyTransaction()
+    if (currentTransaction.value?.status === 'pending') {
+      startLockTimer()
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (lockTimer) {
+    clearInterval(lockTimer)
+  }
 })
 </script>
 
@@ -166,6 +327,10 @@ onMounted(() => {
   object-fit: cover;
 }
 
+.product-status-badge {
+  margin-bottom: 10px;
+}
+
 .price {
   color: #f56c6c;
   font-size: 28px;
@@ -184,5 +349,27 @@ onMounted(() => {
 
 .description-card {
   margin-top: 20px;
+}
+
+.lock-info {
+  margin-top: 10px;
+}
+
+.transaction-panel {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f0f9ff;
+  border-radius: 8px;
+}
+
+.transaction-panel h4 {
+  margin-bottom: 10px;
+  color: #303133;
+}
+
+.transaction-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
 }
 </style>

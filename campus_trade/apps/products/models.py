@@ -47,3 +47,39 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title
+
+    def check_and_update_lock_status(self):
+        """检查并更新商品锁定状态"""
+        from django.utils import timezone
+        from transactions.models import Transaction
+
+        # 如果商品已经是锁定状态，检查锁定是否过期
+        if self.status == 'locked':
+            active_lock = Transaction.objects.filter(
+                product=self,
+                status='pending'
+            ).filter(
+                locked_until__gt=timezone.now()
+            ).exists()
+
+            if not active_lock:
+                # 锁定过期，商品恢复为在售
+                self.status = 'available'
+                self.save(update_fields=['status', 'updated_at'])
+                return False
+            return True
+
+        # 检查是否有有效的锁定交易
+        active_lock = Transaction.objects.filter(
+            product=self,
+            status='pending'
+        ).filter(
+            locked_until__gt=timezone.now()
+        ).exists()
+
+        if active_lock:
+            self.status = 'locked'
+            self.save(update_fields=['status', 'updated_at'])
+            return True
+
+        return False

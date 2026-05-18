@@ -21,21 +21,30 @@
             </template>
           </el-table-column>
           <el-table-column prop="category" label="分类" width="120" />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="status" label="状态" width="120">
             <template #default="scope">
-              <el-tag :type="getStatusType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
+              <el-tag :type="getStatusType(scope.row)" :disable-transitions="true">
+                {{ getStatusText(scope.row) }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="发布时间" width="180" />
           <el-table-column label="操作" width="200">
             <template #default="scope">
-              <el-button type="primary" size="small" @click="editProduct(scope.row.id)" v-if="scope.row.status !== 'rejected'">
-                编辑
-              </el-button>
-              <el-button type="danger" size="small" @click="takeDownProduct(scope.row.id)" v-if="scope.row.status !== 'rejected'">
-                下架
-              </el-button>
-              <el-tag v-else>已下架</el-tag>
+              <template v-if="canOperate(scope.row)">
+                <el-button type="primary" size="small" @click="editProduct(scope.row.id)">
+                  编辑
+                </el-button>
+                <el-button type="danger" size="small" @click="takeDownProduct(scope.row.id)" v-if="scope.row.status === 'available'">
+                  下架
+                </el-button>
+                <el-button type="success" size="small" @click="putOnShelf(scope.row.id)" v-if="scope.row.status === 'rejected'">
+                  上架
+                </el-button>
+              </template>
+              <span v-else class="status-hint">
+                {{ getStatusHint(scope.row) }}
+              </span>
             </template>
           </el-table-column>
         </el-table>
@@ -66,31 +75,62 @@ const goToDetail = (id) => {
   router.push(`/product/${id}`)
 }
 
-const getStatusType = (status) => {
-  const typeMap = {
-    pending: 'info',
-    available: 'success',
-    locked: 'warning',
-    sold: 'success',
-    rejected: 'danger'
-  }
-  return typeMap[status] || 'info'
+const getStatusType = (product) => {
+  const status = product.status
+  const txStatus = product.transaction_status
+
+  if (status === 'available' && !txStatus) return 'success'
+  if (status === 'locked' && txStatus === 'pending') return 'warning'
+  if (status === 'sold' && txStatus === 'paid') return 'warning'
+  if (status === 'sold' && txStatus === 'shipped') return 'primary'
+  if (status === 'sold' && txStatus === 'completed') return 'success'
+  if (status === 'rejected') return 'danger'
+  if (status === 'pending') return 'info'
+
+  return 'info'
 }
 
-const getStatusText = (status) => {
-  const textMap = {
-    pending: '待审核',
-    available: '在售',
-    locked: '锁定中',
-    sold: '已售出',
-    rejected: '已下架'
-  }
-  return textMap[status] || status
+const getStatusText = (product) => {
+  const status = product.status
+  const txStatus = product.transaction_status
+
+  if (status === 'available' && !txStatus) return '在售'
+  if (status === 'locked' && txStatus === 'pending') return '待付款'
+  if (status === 'sold' && txStatus === 'paid') return '待发货'
+  if (status === 'sold' && txStatus === 'shipped') return '待收货'
+  if (status === 'sold' && txStatus === 'completed') return '已完成'
+  if (status === 'rejected') return '已下架'
+  if (status === 'pending') return '待审核'
+
+  return status
+}
+
+const canOperate = (product) => {
+  const status = product.status
+  const txStatus = product.transaction_status
+
+  if (status === 'available' && !txStatus) return true
+  if (status === 'rejected') return true
+  if (status === 'pending') return true
+
+  return false
+}
+
+const getStatusHint = (product) => {
+  const status = product.status
+  const txStatus = product.transaction_status
+
+  if (status === 'locked' && txStatus === 'pending') return '买家待付款'
+  if (status === 'sold' && txStatus === 'paid') return '待发货'
+  if (status === 'sold' && txStatus === 'shipped') return '买家待收货'
+  if (status === 'sold' && txStatus === 'completed') return '交易完成'
+
+  return ''
 }
 
 const loadMyProducts = async () => {
   if (!userStore.isLoggedIn) return
-  
+
   loading.value = true
   try {
     const response = await productStore.getMyProducts()
@@ -107,11 +147,21 @@ const takeDownProduct = async (id) => {
   try {
     await productStore.takeDownProduct(id)
     ElMessage.success('商品已下架')
-    // 重新加载商品列表
     await loadMyProducts()
   } catch (error) {
     console.error(error)
     ElMessage.error('下架失败')
+  }
+}
+
+const putOnShelf = async (id) => {
+  try {
+    await productStore.putOnShelf(id)
+    ElMessage.success('商品已上架')
+    await loadMyProducts()
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('上架失败')
   }
 }
 
@@ -152,5 +202,10 @@ onMounted(() => {
 
 .login-prompt .el-button {
   margin-top: 20px;
+}
+
+.status-hint {
+  color: #909399;
+  font-size: 12px;
 }
 </style>
