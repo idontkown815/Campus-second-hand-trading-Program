@@ -111,6 +111,15 @@
         <el-empty v-else description="商品不存在"></el-empty>
       </el-main>
     </el-container>
+
+    <ChatWindow
+      v-model="chatWindowVisible"
+      :conversation-id="chatConversationId"
+      :product="product"
+      :seller-id="product?.seller_id"
+      :seller-name="product?.seller"
+      :is-new-conversation="isNewConversation"
+    />
   </div>
 </template>
 
@@ -119,6 +128,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import ProductComment from './ProductComment.vue'
+import ChatWindow from '../chat/ChatWindow.vue'
 import api from '../../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -128,6 +138,9 @@ const userStore = useUserStore()
 const product = ref(null)
 const currentTransaction = ref(null)
 const lockRemainingTime = ref('')
+const chatWindowVisible = ref(false)
+const chatConversationId = ref(null)
+const isNewConversation = ref(false)
 let lockTimer = null
 
 const loadProduct = async () => {
@@ -183,13 +196,50 @@ const startLockTimer = () => {
   }, 1000)
 }
 
-const contactSeller = () => {
+const contactSeller = async () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
     router.push('/login')
     return
   }
-  console.log('联系卖家', product.value.seller)
+
+  if (!product.value) {
+    ElMessage.error('商品信息未加载')
+    return
+  }
+
+  if (product.value.seller_id === userStore.user.id) {
+    ElMessage.warning('这是您发布的商品')
+    return
+  }
+
+  try {
+    console.log('创建会话参数:', {
+      productId: product.value.id,
+      sellerId: product.value.seller_id,
+      title: product.value.title
+    })
+    
+    const response = await api.createConversation(
+      product.value.id,
+      product.value.seller_id,
+      `您好，我想咨询关于"${product.value.title}"的商品`
+    )
+    
+    console.log('创建会话响应:', response)
+    
+    if (response.data && (response.data.code === 200 || response.data.code === 201)) {
+      chatConversationId.value = response.data.data.id
+      isNewConversation.value = true
+      chatWindowVisible.value = true
+    } else {
+      ElMessage.error('创建会话失败: ' + (response.data?.message || '未知错误'))
+    }
+  } catch (error) {
+    console.error('创建会话失败详情:', error)
+    const errorMsg = error.response?.data?.message || error.message || '创建会话失败，请稍后重试'
+    ElMessage.error(errorMsg)
+  }
 }
 
 const handleBuy = async () => {
