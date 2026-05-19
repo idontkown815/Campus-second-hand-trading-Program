@@ -8,9 +8,16 @@ const api = axios.create({
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token')
+  console.log("=== 请求拦截器 ===")
+  console.log(`请求URL: ${config.url}`)
+  console.log(`请求方法: ${config.method}`)
+  console.log(`Token存在: ${!!token}`)
+  console.log(`跳过认证: ${config.skipAuth}`)
+  
   // 跳过登录和注册请求的token添加
   if (token && !config.skipAuth) {
     config.headers.Authorization = `Bearer ${token}`
+    console.log("已添加Authorization头")
   }
   return config
 })
@@ -88,8 +95,27 @@ export default {
   deleteComment(id) {
     return api.delete(`/communications/comments/${id}/`)
   },
-  getTransactions() {
-    return api.get('/transactions/')
+  getMessages(conversationId) {
+    return api.get('/communications/messages/', { params: { conversation_id: conversationId } })
+  },
+  sendMessage(conversationId, content) {
+    return api.post('/communications/messages/', { conversation_id: conversationId, content })
+  },
+  getConversations() {
+    return api.get('/communications/conversations/')
+  },
+  createConversation(productId, sellerId, content) {
+    return api.post('/communications/conversations/', {
+      product_id: productId,
+      participant_ids: [sellerId],
+      initial_message: content
+    })
+  },
+  markMessagesAsRead(conversationId) {
+    return api.post('/communications/messages/mark_read/', { conversation_id: conversationId })
+  },
+  getUnreadCount() {
+    return api.get('/communications/messages/unread_count/')
   },
   createTransaction(productId) {
     return api.post('/transactions/', { product_id: productId })

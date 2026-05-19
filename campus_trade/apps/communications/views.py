@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -92,7 +93,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        # 只返回当前用户参与的会话
         queryset = Conversation.objects.filter(participants=request.user)
         serializer = self.get_serializer(queryset, many=True)
         return Response({
@@ -100,6 +100,105 @@ class ConversationViewSet(viewsets.ModelViewSet):
             'message': '获取成功',
             'data': serializer.data
         })
+
+    def create(self, request, *args, **kwargs):
+        print("=== 创建会话请求到达 ===")
+        print(f"请求方法: {request.method}")
+        print(f"请求数据: {request.data}")
+        print(f"请求头: {dict(request.headers)}")
+        
+        data = request.data
+        product_id = data.get('product_id')
+        participant_ids = data.get('participant_ids', [])
+        initial_message = data.get('initial_message', '')
+
+        print(f"product_id: {product_id}, type: {type(product_id)}")
+        print(f"participant_ids: {participant_ids}, type: {type(participant_ids)}")
+        print(f"initial_message: {initial_message}")
+
+        if not product_id:
+            print("错误: 缺少商品ID")
+            return Response({
+                'code': 400,
+                'message': '请提供商品ID',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return Response({
+                'code': 400,
+                'message': '商品ID必须为整数',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.products.models import Product
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if not isinstance(participant_ids, list):
+            participant_ids = []
+        
+        try:
+            participant_ids = [int(pid) for pid in participant_ids]
+        except (ValueError, TypeError):
+            return Response({
+                'code': 400,
+                'message': '参与者ID必须为整数列表',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        all_participant_ids = list(set(participant_ids + [request.user.id]))
+
+        try:
+            existing_conversation = Conversation.objects.filter(
+                product=product,
+                participants=request.user
+            ).first()
+
+            if existing_conversation:
+                if initial_message:
+                    Message.objects.create(
+                        conversation=existing_conversation,
+                        sender=request.user,
+                        content=initial_message
+                    )
+                serializer = self.get_serializer(existing_conversation)
+                return Response({
+                    'code': 200,
+                    'message': '会话已存在',
+                    'data': serializer.data
+                }, status=status.HTTP_200_OK)
+
+            conversation = Conversation.objects.create(product=product)
+            conversation.participants.set(all_participant_ids)
+
+            if initial_message:
+                Message.objects.create(
+                    conversation=conversation,
+                    sender=request.user,
+                    content=initial_message
+                )
+
+            serializer = self.get_serializer(conversation)
+            return Response({
+                'code': 201,
+                'message': '创建成功',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'服务器错误: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -109,25 +208,109 @@ class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
+        print("=== 获取消息请求到达 ===")
+        print(f"请求用户: {request.user}")
+        print(f"请求参数: {request.query_params}")
+        
         # 只返回当前用户参与的会话的消息
         conversation_id = request.query_params.get('conversation_id')
+        print(f"conversation_id: {conversation_id}, type: {type(conversation_id)}")
+        
         if conversation_id:
-            queryset = Message.objects.filter(
-                conversation_id=conversation_id,
-                conversation__participants=request.user
-            )
-            # 标记消息为已读
-            queryset.filter(sender__ne=request.user).update(is_read=True)
-            serializer = self.get_serializer(queryset, many=True)
-            return Response({
-                'code': 200,
-                'message': '获取成功',
-                'data': serializer.data
-            })
+            try:
+                conversation_id = int(conversation_id)
+                queryset = Message.objects.filter(
+                    conversation_id=conversation_id,
+                    conversation__participants=request.user
+                )
+                print(f"找到消息数量: {queryset.count()}")
+                
+                # 标记消息为已读
+                Message.objects.filter(
+                    conversation_id=conversation_id,
+                    conversation__participants=request.user
+                ).exclude(sender=request.user).update(is_read=True)
+                
+                serializer = self.get_serializer(queryset, many=True)
+                print("返回成功")
+                return Response({
+                    'code': 200,
+                    'message': '获取成功',
+                    'data': serializer.data
+                })
+            except Exception as e:
+                print(f"获取消息失败: {str(e)}")
+                return Response({
+                    'code': 500,
+                    'message': f'获取消息失败: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({
             'code': 400,
             'message': '请提供会话ID'
         }, status=status.HTTP_400_BAD_REQUEST)
+
+    def create(self, request, *args, **kwargs):
+        print("=== 发送消息请求到达 ===")
+        print(f"请求用户: {request.user}")
+        print(f"请求数据: {request.data}")
+        
+        conversation_id = request.data.get('conversation_id')
+        content = request.data.get('content')
+        
+        print(f"conversation_id: {conversation_id}, content: {content}")
+        
+        if not conversation_id:
+            return Response({
+                'code': 400,
+                'message': '请提供会话ID'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not content:
+            return Response({
+                'code': 400,
+                'message': '请提供消息内容'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            conversation_id = int(conversation_id)
+            conversation = Conversation.objects.get(id=conversation_id)
+            
+            # 检查用户是否是会话参与者
+            if request.user not in conversation.participants.all():
+                return Response({
+                    'code': 403,
+                    'message': '无权发送消息到该会话'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            message = Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                content=content
+            )
+            
+            # 更新会话的最后消息
+            conversation.last_message = message
+            conversation.save()
+            
+            serializer = self.get_serializer(message)
+            print("消息发送成功")
+            return Response({
+                'code': 200,
+                'message': '发送成功',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        except Conversation.DoesNotExist:
+            print("会话不存在")
+            return Response({
+                'code': 404,
+                'message': '会话不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"发送消息失败: {str(e)}")
+            return Response({
+                'code': 500,
+                'message': f'发送消息失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FavoriteViewSet(viewsets.ModelViewSet):

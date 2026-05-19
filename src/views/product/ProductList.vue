@@ -7,6 +7,7 @@
           <div class="header-nav">
             <el-button type="text" @click="$router.push('/')">首页</el-button>
             <el-button type="text" @click="$router.push('/products')">商品</el-button>
+            <el-button type="text" @click="$router.push('/messages')" v-if="userStore.isLoggedIn">消息</el-button>
           </div>
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
