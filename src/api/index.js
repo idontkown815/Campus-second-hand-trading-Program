@@ -8,7 +8,8 @@ const api = axios.create({
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token')
-  if (token) {
+  // 跳过登录和注册请求的token添加
+  if (token && !config.skipAuth) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -21,10 +22,16 @@ api.interceptors.response.use(
       const { status, data } = error.response
       const message = data?.message || '请求失败'
       if (status === 401) {
-        ElMessage.error('登录已过期，请重新登录')
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
+        // 如果当前已经在登录页面，不进行重定向
+        if (window.location.pathname !== '/login') {
+          ElMessage.error('登录已过期，请重新登录')
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          window.location.href = '/login'
+        } else {
+          // 在登录页面，直接返回错误，让登录页面处理
+          return Promise.reject(error)
+        }
       } else {
         ElMessage.error(message)
       }
@@ -37,10 +44,10 @@ api.interceptors.response.use(
 
 export default {
   register(data) {
-    return api.post('/users/register/', data)
+    return api.post('/users/register/', data, { skipAuth: true })
   },
   login(data) {
-    return api.post('/users/login/', data)
+    return api.post('/users/login/', data, { skipAuth: true })
   },
   getProfile() {
     return api.get('/users/profile/')

@@ -72,7 +72,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response({
             'code': 200,
             'message': '获取成功',
@@ -102,7 +102,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'data': None
             }, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return Response({
             'code': 200,
             'message': '获取成功',
@@ -262,7 +262,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def my_products(self, request):
         # 获取当前用户发布的商品
         products = Product.objects.filter(seller=request.user, is_deleted=False)
-        serializer = self.get_serializer(products, many=True)
+        serializer = self.get_serializer(products, many=True, context={'request': request})
         return Response({
             'code': 200,
             'message': '获取成功',

@@ -38,6 +38,10 @@
               </el-input>
             </div>
             <div class="filter-actions">
+              <el-button size="small" @click="handleClearFilters" type="info" plain>
+                <el-icon><RefreshLeft /></el-icon>
+                清除筛选
+              </el-button>
               <el-dropdown trigger="click" @command="handleSortCommand">
                 <span class="filter-item">
                   综合
@@ -53,13 +57,13 @@
               </el-dropdown>
               <el-dropdown trigger="click" @command="handleCategoryCommand">
                 <span class="filter-item">
-                  {{ selectedCategory ? getCategoryName(selectedCategory) : '全部分类' }}
+                  {{ selectedCategoryName || '全部分类' }}
                   <el-icon><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="">全部分类</el-dropdown-item>
-                    <el-dropdown-item v-for="cat in categories" :key="cat.id" :command="cat.id">{{ cat.name }}</el-dropdown-item>
+                    <el-dropdown-item v-for="cat in categories" :key="cat.id" :command="cat.name">{{ cat.name }}</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -78,9 +82,11 @@
               </el-dropdown>
               <div class="price-filter">
                 <span class="filter-label">价格：</span>
-                <el-input-number v-model="priceRange[0]" :min="0" placeholder="最低" style="width: 70px" size="small" />
+                <span class="price-prefix">¥</span>
+                <el-input-number v-model="minPrice" :min="0" :max="9999999" placeholder="最低" style="width: 100px" size="small" />
                 <span class="price-separator">-</span>
-                <el-input-number v-model="priceRange[1]" :min="0" placeholder="最高" style="width: 70px" size="small" />
+                <span class="price-prefix">¥</span>
+                <el-input-number v-model="maxPrice" :min="0" :max="9999999" placeholder="最高" style="width: 100px" size="small" />
                 <el-button size="small" @click="handlePriceFilter">确定</el-button>
               </div>
             </div>
@@ -105,33 +111,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import api from '../../api'
 import { ElMessage } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, RefreshLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const products = ref([])
 const searchKeyword = ref('')
 const categories = ref([
-  { id: 1, name: '学习用品' },
+  { id: 1, name: '学习用具' },
   { id: 2, name: '数码产品' },
   { id: 3, name: '生活日用' },
   { id: 4, name: '服饰美妆' },
   { id: 5, name: '其他' }
 ])
-const selectedCategory = ref(null)
-const priceRange = ref([0, 0])
+const selectedCategoryName = ref('')
 const selectedCampus = ref('')
 const sortOrder = ref('default')
-
-const getCategoryName = (categoryId) => {
-  const category = categories.value.find(cat => cat.id === categoryId)
-  return category ? category.name : '全部分类'
-}
+const minPrice = ref('')
+const maxPrice = ref('')
 
 const loadProducts = async () => {
   try {
@@ -139,14 +141,14 @@ const loadProducts = async () => {
     if (searchKeyword.value) {
       params.search = searchKeyword.value
     }
-    if (selectedCategory.value) {
-      params.category = selectedCategory.value
+    if (selectedCategoryName.value) {
+      params.category = selectedCategoryName.value
     }
-    if (priceRange.value[0] > 0) {
-      params.min_price = priceRange.value[0]
+    if (minPrice.value) {
+      params.min_price = minPrice.value
     }
-    if (priceRange.value[1] > 0) {
-      params.max_price = priceRange.value[1]
+    if (maxPrice.value) {
+      params.max_price = maxPrice.value
     }
     if (selectedCampus.value) {
       params.campus = selectedCampus.value
@@ -157,7 +159,8 @@ const loadProducts = async () => {
     const response = await api.getProducts(params)
     products.value = response.data.data || []
   } catch (error) {
-    console.error(error)
+    console.error('加载商品失败:', error)
+    ElMessage.error('加载商品失败')
   }
 }
 
@@ -171,7 +174,7 @@ const handleSortCommand = (command) => {
 }
 
 const handleCategoryCommand = (command) => {
-  selectedCategory.value = command || null
+  selectedCategoryName.value = command || ''
   loadProducts()
 }
 
@@ -184,16 +187,19 @@ const handlePriceFilter = () => {
   loadProducts()
 }
 
-const handleCampusChange = () => {
+const handleClearFilters = () => {
+  searchKeyword.value = ''
+  selectedCategoryName.value = ''
+  selectedCampus.value = ''
+  sortOrder.value = 'default'
+  minPrice.value = ''
+  maxPrice.value = ''
   loadProducts()
+  ElMessage.success('已清除所有筛选条件')
 }
 
 const goToDetail = (id) => {
   router.push(`/product/${id}`)
-}
-
-const goToPublish = () => {
-  router.push('/product/publish')
 }
 
 const goToMy = () => {
@@ -336,6 +342,11 @@ onMounted(() => {
 .price-separator {
   margin: 0 3px;
   color: #999;
+}
+
+.price-prefix {
+  color: #667eea;
+  font-weight: 500;
 }
 
 .product-card {
