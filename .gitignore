@@ -9,11 +9,6 @@ Thumbs.db
 *.swo
 *~
 
-# 依赖文件
-node_modules/
-venv/
-venv38/
-
 # 环境文件
 .env
 .env.local
@@ -21,30 +16,9 @@ venv38/
 .env.test.local
 .env.production.local
 
-# 构建文件
-dist/
-build/
-
 # 日志文件
 logs/
 *.log
-
-# 缓存文件
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# 上传文件
-uploads/
-
-# 测试文件
-test_*.py
-*_test.py
-
-# 数据库文件
-*.db
-*.sqlite3
 
 # 临时文件
 *.tmp

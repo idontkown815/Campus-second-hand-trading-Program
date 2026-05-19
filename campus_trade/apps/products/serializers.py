@@ -32,17 +32,35 @@ class ProductSerializer(serializers.ModelSerializer):
         ]
 
     def get_images(self, obj):
-        """获取图片相对路径"""
+        """获取图片完整URL"""
         if not obj.images:
             return []
 
-        images = obj.images.split(',') if isinstance(obj.images, str) else obj.images
+        import json
+        images = []
+        
+        # 尝试解析 JSON 字符串
+        if isinstance(obj.images, str):
+            try:
+                images = json.loads(obj.images)
+            except json.JSONDecodeError:
+                # 如果不是有效的 JSON，则按逗号分割
+                images = obj.images.split(',')
+        else:
+            images = obj.images
+        
         full_images = []
+        request = self.context.get('request')
         for img in images:
             if isinstance(img, str):
                 img = img.strip()
                 if img:
-                    full_images.append('/uploads/' + img)
+                    # 如果有request对象，构建完整的绝对URL
+                    if request:
+                        full_url = request.build_absolute_uri('/uploads/' + img)
+                    else:
+                        full_url = '/uploads/' + img
+                    full_images.append(full_url)
         return full_images
 
     def get_transaction_status(self, obj):

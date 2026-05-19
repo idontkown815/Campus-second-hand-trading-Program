@@ -191,6 +191,16 @@ const form = ref({
   image_list: []
 })
 
+// 自定义库存验证函数
+const validateStock = (rule, value, callback) => {
+  const numValue = parseInt(value)
+  if (isNaN(numValue) || numValue < 1) {
+    callback(new Error('库存至少为1'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
   title: [
     { required: true, message: '请输入商品标题', trigger: 'blur' },
@@ -205,7 +215,7 @@ const rules = {
   ],
   stock: [
     { required: true, message: '请输入库存', trigger: 'blur' },
-    { type: 'number', min: 1, message: '库存至少为1', trigger: 'blur' }
+    { validator: validateStock, trigger: 'blur' }
   ],
   category: [
     { required: true, message: '请选择分类', trigger: 'change' }
