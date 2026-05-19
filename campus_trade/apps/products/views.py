@@ -7,6 +7,7 @@ from django.conf import settings
 import os
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
+from apps.transactions.models import Transaction
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -267,4 +268,32 @@ class ProductViewSet(viewsets.ModelViewSet):
             'code': 200,
             'message': '获取成功',
             'data': serializer.data
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def admin_release_all(self, request):
+        """管理员：释放所有被锁定的商品"""
+        # 检查是否是超级管理员
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '只有管理员可以执行此操作',
+                'data': None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 统计
+        locked_count = Product.objects.filter(status='locked').count()
+        pending_count = Transaction.objects.filter(status='pending').count()
+        
+        # 更新
+        product_updated = Product.objects.filter(status='locked').update(status='available')
+        transaction_updated = Transaction.objects.filter(status='pending').update(status='expired')
+        
+        return Response({
+            'code': 200,
+            'message': '释放成功',
+            'data': {
+                'locked_released': product_updated,
+                'pending_expired': transaction_updated
+            }
         })

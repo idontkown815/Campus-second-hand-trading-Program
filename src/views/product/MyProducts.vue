@@ -83,6 +83,7 @@ const getStatusType = (product) => {
   if (status === 'locked' && txStatus === 'pending') return 'warning'
   if (status === 'sold' && txStatus === 'paid') return 'warning'
   if (status === 'sold' && txStatus === 'shipped') return 'primary'
+  if (status === 'sold' && txStatus === 'arrived') return 'primary'
   if (status === 'sold' && txStatus === 'completed') return 'success'
   if (status === 'rejected') return 'danger'
   if (status === 'pending') return 'info'
@@ -98,6 +99,7 @@ const getStatusText = (product) => {
   if (status === 'locked' && txStatus === 'pending') return '待付款'
   if (status === 'sold' && txStatus === 'paid') return '待发货'
   if (status === 'sold' && txStatus === 'shipped') return '待收货'
+  if (status === 'sold' && txStatus === 'arrived') return '已到货'
   if (status === 'sold' && txStatus === 'completed') return '已完成'
   if (status === 'rejected') return '已下架'
   if (status === 'pending') return '待审核'
@@ -123,6 +125,7 @@ const getStatusHint = (product) => {
   if (status === 'locked' && txStatus === 'pending') return '买家待付款'
   if (status === 'sold' && txStatus === 'paid') return '待发货'
   if (status === 'sold' && txStatus === 'shipped') return '买家待收货'
+  if (status === 'sold' && txStatus === 'arrived') return '买家待确认'
   if (status === 'sold' && txStatus === 'completed') return '交易完成'
 
   return ''

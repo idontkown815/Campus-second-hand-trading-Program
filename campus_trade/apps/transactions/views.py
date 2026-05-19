@@ -145,6 +145,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'message': '购买意向已过期，请重新创建'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # 保存收货信息
+        recipient_name = request.data.get('recipient_name')
+        recipient_phone = request.data.get('recipient_phone')
+        shipping_address = request.data.get('shipping_address')
+        
+        if not recipient_name or not recipient_phone or not shipping_address:
+            return Response({
+                'code': 400,
+                'message': '请完整填写收货信息'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        transaction.recipient_name = recipient_name
+        transaction.recipient_phone = recipient_phone
+        transaction.shipping_address = shipping_address
+
         # 执行付款
         transaction.status = 'paid'
         transaction.save()
@@ -258,6 +273,32 @@ class TransactionViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['post'])
+    def arrive(self, request, pk=None):
+        """卖家确认到货"""
+        try:
+            transaction = Transaction.objects.get(pk=pk, seller=request.user)
+        except Transaction.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '交易不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if transaction.status != 'shipped':
+            return Response({
+                'code': 400,
+                'message': '当前状态不允许确认到货'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        transaction.status = 'arrived'
+        transaction.save()
+
+        return Response({
+            'code': 200,
+            'message': '到货确认成功，等待买家确认收货',
+            'data': TransactionSerializer(transaction).data
+        })
+
+    @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         """买家确认收货，交易完成"""
         try:
@@ -268,7 +309,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'message': '交易不存在'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        if transaction.status != 'shipped':
+        if transaction.status not in ['shipped', 'arrived']:
             return Response({
                 'code': 400,
                 'message': '当前状态不允许确认收货'

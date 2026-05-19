@@ -42,7 +42,19 @@ const form = ref({
 const rules = {
   student_id: [
     { required: true, message: '请输入学号', trigger: 'blur' },
-    { len: 8, message: '学号必须为8位', trigger: 'blur' }
+    { 
+      validator: (rule, value, callback) => {
+        // 管理员账号不受8位限制
+        if (value === 'admin') {
+          callback()
+        } else if (value.length !== 8) {
+          callback(new Error('学号必须为8位'))
+        } else {
+          callback()
+        }
+      }, 
+      trigger: 'blur' 
+    }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' }

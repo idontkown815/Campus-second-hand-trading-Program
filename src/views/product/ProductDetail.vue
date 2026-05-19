@@ -86,7 +86,7 @@
                     </template>
                   </el-alert>
                   <div class="transaction-actions">
-                    <el-button type="primary" @click="handlePay" size="large">确认付款</el-button>
+                    <el-button type="primary" @click="goToOrder" size="large">去订单页面付款</el-button>
                     <el-button @click="handleCancelTransaction" size="large">取消意向</el-button>
                   </div>
                 </div>
@@ -262,21 +262,8 @@ const handleBuy = async () => {
   }
 }
 
-const handlePay = async () => {
-  try {
-    const response = await api.payTransaction(currentTransaction.value.id)
-    if (response.data.code === 200) {
-      ElMessage.success('付款成功，等待卖家发货')
-      currentTransaction.value = response.data.data
-      product.value.status = 'sold'
-      if (lockTimer) {
-        clearInterval(lockTimer)
-        lockTimer = null
-      }
-    }
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || '付款失败')
-  }
+const goToOrder = () => {
+  router.push('/orders?tab=pending')
 }
 
 const handleCancelTransaction = async () => {

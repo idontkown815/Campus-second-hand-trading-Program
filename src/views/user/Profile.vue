@@ -35,6 +35,24 @@
           </template>
         </el-form-item>
       </el-form>
+      
+      <!-- 管理员功能区 -->
+      <div v-if="userStore.user?.is_superuser" class="admin-section">
+        <el-divider content-position="left">管理员功能</el-divider>
+        <el-card class="admin-card">
+          <div class="admin-item">
+            <span class="admin-item-title">释放所有锁定商品</span>
+            <span class="admin-item-desc">将所有被锁定的商品恢复为在售状态，并将待付款交易设为过期</span>
+          </div>
+          <el-button 
+            type="danger" 
+            @click="handleAdminReleaseAll"
+            :loading="adminLoading"
+            class="admin-btn">
+            一键释放锁定商品
+          </el-button>
+        </el-card>
+      </div>
     </el-card>
   </div>
 </template>
@@ -43,7 +61,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '../../api'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -65,6 +84,7 @@ const rules = {
 
 const formRef = ref(null)
 const loading = ref(false)
+const adminLoading = ref(false)
 const isEditing = ref(false)
 
 const goToLogin = () => {
@@ -113,6 +133,36 @@ const handleCancel = () => {
   isEditing.value = false
 }
 
+const handleAdminReleaseAll = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要释放所有被锁定的商品吗？此操作将：\n1. 把所有锁定商品恢复为在售状态\n2. 把所有待付款交易设为过期',
+      '确认操作',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    adminLoading.value = true
+    const response = await api.adminReleaseAll()
+    
+    if (response.data.code === 200) {
+      const data = response.data.data
+      ElMessage.success(
+        `释放成功！\n释放锁定商品: ${data.locked_released} 个\n过期待付款交易: ${data.pending_expired} 个`
+      )
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  } finally {
+    adminLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchProfile()
 })
@@ -125,6 +175,7 @@ onMounted(() => {
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px;
 }
 
 .profile-card {
@@ -144,5 +195,34 @@ onMounted(() => {
 
 .login-prompt .el-button {
   margin-top: 20px;
+}
+
+.admin-section {
+  margin-top: 20px;
+}
+
+.admin-card {
+  background: #fff5f5;
+}
+
+.admin-item {
+  margin-bottom: 15px;
+}
+
+.admin-item-title {
+  display: block;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.admin-item-desc {
+  display: block;
+  font-size: 14px;
+  color: #666;
+}
+
+.admin-btn {
+  width: 100%;
 }
 </style>

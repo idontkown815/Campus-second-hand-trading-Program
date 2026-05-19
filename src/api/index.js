@@ -117,11 +117,14 @@ export default {
   getUnreadCount() {
     return api.get('/communications/messages/unread_count/')
   },
+  getTransactions() {
+    return api.get('/transactions/')
+  },
   createTransaction(productId) {
     return api.post('/transactions/', { product_id: productId })
   },
-  payTransaction(id) {
-    return api.post(`/transactions/${id}/pay/`)
+  payTransaction(id, shippingInfo) {
+    return api.post(`/transactions/${id}/pay/`, shippingInfo)
   },
   cancelTransaction(id) {
     return api.post(`/transactions/${id}/cancel/`)
@@ -129,10 +132,16 @@ export default {
   shipTransaction(id) {
     return api.post(`/transactions/${id}/ship/`)
   },
+  arriveTransaction(id) {
+    return api.post(`/transactions/${id}/arrive/`)
+  },
   completeTransaction(id) {
     return api.post(`/transactions/${id}/complete/`)
   },
   refundTransaction(id) {
     return api.post(`/transactions/${id}/refund/`)
+  },
+  adminReleaseAll() {
+    return api.post('/products/admin_release_all/')
   }
 }

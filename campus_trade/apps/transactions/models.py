@@ -10,6 +10,7 @@ class Transaction(models.Model):
         ('pending', '待付款'),
         ('paid', '已付款'),
         ('shipped', '已发货'),
+        ('arrived', '已到货'),
         ('completed', '已完成'),
         ('cancelled', '已取消'),
         ('expired', '已过期'),
@@ -22,6 +23,10 @@ class Transaction(models.Model):
     locked_until = models.DateTimeField(null=True, blank=True, verbose_name="锁定截止时间")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    # 收货信息
+    recipient_name = models.CharField(max_length=100, null=True, blank=True, verbose_name="收件人姓名")
+    recipient_phone = models.CharField(max_length=20, null=True, blank=True, verbose_name="收件人手机")
+    shipping_address = models.CharField(max_length=255, null=True, blank=True, verbose_name="收货地址")
 
     class Meta:
         db_table = 'transactions'
@@ -29,7 +34,7 @@ class Transaction(models.Model):
         verbose_name_plural = '交易'
 
     def save(self, *args, **kwargs):
-        # 当交易状态变为待付款时，设置3小时锁定时间
+        # 当交易状态变为待付款时，设置3分钟锁定时间
         if self.status == 'pending' and not self.locked_until:
-            self.locked_until = timezone.now() + timedelta(hours=3)
+            self.locked_until = timezone.now() + timedelta(minutes=3)
         super().save(*args, **kwargs)

@@ -20,7 +20,8 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'product', 'product_id', 'product_title', 'product_price', 'product_images',
             'buyer', 'buyer_id', 'seller', 'seller_id', 'status',
-            'locked_until', 'locked_remaining_seconds', 'created_at', 'updated_at'
+            'locked_until', 'locked_remaining_seconds', 'created_at', 'updated_at',
+            'recipient_name', 'recipient_phone', 'shipping_address'
         ]
 
     def get_locked_remaining_seconds(self, obj):
