@@ -36,9 +36,37 @@ class TransactionSerializer(serializers.ModelSerializer):
         """获取商品图片列表"""
         try:
             product = obj.product
-            if product and hasattr(product, 'images') and product.images:
-                images = product.images if isinstance(product.images, list) else []
-                return ['/uploads/' + str(img) if img and not str(img).startswith('http') else str(img) for img in images if img]
-            return []
-        except Exception:
+            if not product or not hasattr(product, 'images') or not product.images:
+                return []
+            
+            images = []
+            
+            # 处理字符串格式（可能是 JSON 字符串）
+            if isinstance(product.images, str):
+                try:
+                    import json
+                    images = json.loads(product.images)
+                except json.JSONDecodeError:
+                    # 如果不是有效 JSON，尝试按逗号分割
+                    images = product.images.split(',')
+            elif isinstance(product.images, list):
+                images = product.images
+            
+            # 构建完整的图片URL
+            result = []
+            for img in images:
+                if img:
+                    img_str = str(img).strip()
+                    if img_str:
+                        if img_str.startswith('http'):
+                            result.append(img_str)
+                        else:
+                            # 添加正确的路径前缀
+                            if not img_str.startswith('商品/'):
+                                img_str = '商品/' + img_str
+                            result.append('/uploads/' + img_str)
+            
+            return result
+        except Exception as e:
+            print(f"Error getting product images: {e}")
             return []

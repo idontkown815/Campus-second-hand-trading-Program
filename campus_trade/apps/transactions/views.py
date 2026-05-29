@@ -113,7 +113,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         return Response({
             'code': 200,
-            'message': '购买意向已创建，请在3小时内完成付款',
+            'message': '购买意向已创建，请在2小时内完成付款',
             'data': TransactionSerializer(transaction).data
         }, status=status.HTTP_201_CREATED)
 

@@ -6,7 +6,8 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     user: null,
     token: localStorage.getItem('access_token') || null,
-    isLoggedIn: !!localStorage.getItem('access_token')
+    isLoggedIn: !!localStorage.getItem('access_token'),
+    isAdmin: localStorage.getItem('is_admin') === 'true'
   }),
 
   actions: {
@@ -17,18 +18,22 @@ export const useUserStore = defineStore('user', {
 
     async login(student_id, password) {
       const response = await api.login({ student_id, password })
-      const { access, refresh, user } = response.data.data
+      const { access, refresh, user, is_admin } = response.data.data
       this.token = access
       this.user = user
+      this.isAdmin = is_admin
       this.isLoggedIn = true
       localStorage.setItem('access_token', access)
       localStorage.setItem('refresh_token', refresh)
+      localStorage.setItem('is_admin', is_admin ? 'true' : 'false')
       return response.data
     },
 
     async getProfile() {
       const response = await api.getProfile()
       this.user = response.data.data
+      this.isAdmin = response.data.data.is_superuser
+      localStorage.setItem('is_admin', this.isAdmin ? 'true' : 'false')
       return this.user
     },
 
@@ -45,8 +50,10 @@ export const useUserStore = defineStore('user', {
       this.token = null
       this.user = null
       this.isLoggedIn = false
+      this.isAdmin = false
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
+      localStorage.removeItem('is_admin')
       router.push('/')
     }
   }

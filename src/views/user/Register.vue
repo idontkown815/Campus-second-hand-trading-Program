@@ -107,11 +107,15 @@ const handleRegister = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: url('/uploads/materials/background.jpg') no-repeat center center fixed;
+  background-size: cover;
 }
 
 .register-card {
   width: 450px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .register-card h2 {

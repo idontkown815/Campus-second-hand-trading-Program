@@ -21,14 +21,15 @@
       </div>
 
       <div class="messages-container" ref="messagesContainer">
-        <div v-if="loading" class="loading">
+        <!-- 使用 v-show 替代 v-if，避免 DOM 销毁导致滚动位置丢失 -->
+        <div v-show="loading" class="loading-overlay">
           <el-icon class="is-loading"><Loading /></el-icon>
           加载中...
         </div>
-        <div v-else-if="messages.length === 0" class="no-messages">
+        <div v-show="!loading && messages.length === 0" class="no-messages">
           暂无消息，开始对话吧！
         </div>
-        <div v-else class="message-list">
+        <div v-show="!loading && messages.length > 0" class="message-list">
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -100,6 +101,7 @@ const loading = ref(false)
 const sending = ref(false)
 const messagesContainer = ref(null)
 let refreshTimer = null
+const isFirstLoad = ref(true) // 标记是否为首次加载
 
 watch(() => props.modelValue, (val) => {
   visible.value = val
@@ -123,7 +125,14 @@ watch(visible, (val) => {
 const loadMessages = async () => {
   if (!props.conversationId) return
 
-  loading.value = true
+  // 只有首次加载时显示loading，后续自动刷新不显示loading避免闪烁
+  if (isFirstLoad.value) {
+    loading.value = true
+  }
+  
+  // 记录当前滚动位置（用于判断是否需要自动滚动到底部）
+  const wasAtBottom = isAtBottom()
+  
   try {
     const response = await api.getMessages(props.conversationId)
     if (response.data.code === 200) {
@@ -131,14 +140,25 @@ const loadMessages = async () => {
         ...msg,
         is_self: String(msg.sender_id) !== String(props.sellerId)
       }))
-      scrollToBottom()
+      // 只有当用户原本就在底部时才自动滚动到底部
+      if (wasAtBottom) {
+        scrollToBottom()
+      }
     }
   } catch (error) {
     console.error('加载消息失败:', error)
     ElMessage.error('加载消息失败')
   } finally {
     loading.value = false
+    isFirstLoad.value = false // 首次加载完成后标记为false
   }
+}
+
+const isAtBottom = () => {
+  if (!messagesContainer.value) return true
+  const container = messagesContainer.value
+  // 判断是否在底部附近（50像素范围内）
+  return container.scrollHeight - container.scrollTop - container.clientHeight < 50
 }
 
 const handleSend = async () => {
@@ -205,6 +225,7 @@ const stopRefresh = () => {
 const handleClose = () => {
   visible.value = false
   stopRefresh()
+  isFirstLoad.value = true // 关闭时重置首次加载标记，下次打开重新显示loading
 }
 
 onUnmounted(() => {
@@ -267,9 +288,24 @@ onUnmounted(() => {
   border-radius: 8px;
   min-height: 300px;
   max-height: 400px;
+  position: relative;
 }
 
-.loading, .no-messages {
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(245, 245, 245, 0.9);
+  color: #999;
+  z-index: 10;
+}
+
+.no-messages {
   display: flex;
   justify-content: center;
   align-items: center;

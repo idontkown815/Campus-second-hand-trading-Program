@@ -427,7 +427,8 @@ onMounted(() => {
 .badge {
   position: absolute;
   top: -5px;
-  right: 10px;
+  right: 50%;
+  transform: translateX(20px);
 }
 
 .tool-section {

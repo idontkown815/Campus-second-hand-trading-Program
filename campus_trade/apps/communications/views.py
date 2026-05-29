@@ -94,7 +94,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         queryset = Conversation.objects.filter(participants=request.user)
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response({
             'code': 200,
             'message': '获取成功',
@@ -164,13 +164,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
             ).first()
 
             if existing_conversation:
-                if initial_message:
-                    Message.objects.create(
-                        conversation=existing_conversation,
-                        sender=request.user,
-                        content=initial_message
-                    )
-                serializer = self.get_serializer(existing_conversation)
+                serializer = self.get_serializer(existing_conversation, context={'request': request})
                 return Response({
                     'code': 200,
                     'message': '会话已存在',
@@ -187,7 +181,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
                     content=initial_message
                 )
 
-            serializer = self.get_serializer(conversation)
+            serializer = self.get_serializer(conversation, context={'request': request})
             return Response({
                 'code': 201,
                 'message': '创建成功',
