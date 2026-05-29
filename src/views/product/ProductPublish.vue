@@ -240,8 +240,17 @@ const loadProductDetail = async () => {
   
   try {
     const product = await productStore.fetchProduct(productId.value)
-    // 提取文件名列表（不带 /uploads/ 前缀）
-    const imageNames = (product.images || []).map(url => url.split('/').pop())
+    // 提取相对路径（不带 /uploads/ 前缀，但保留 商品/ 子目录）
+    const imageNames = (product.images || []).map(url => {
+      if (url.startsWith('/uploads/')) {
+        return url.replace('/uploads/', '')
+      } else if (url.startsWith('http')) {
+        // 如果是完整URL，提取相对路径
+        const parts = url.split('/uploads/')
+        return parts.length > 1 ? parts[1] : url.split('/').pop()
+      }
+      return url
+    })
     form.value = {
       title: product.title,
       description: product.description,

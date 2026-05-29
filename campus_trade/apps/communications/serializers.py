@@ -12,18 +12,37 @@ class ProductSummarySerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'price', 'images']
 
     def get_images(self, obj):
-        if obj.images:
-            first_image = obj.images[0] if isinstance(obj.images, list) else obj.images
-            if isinstance(first_image, str):
-                if first_image.startswith('['):
-                    import json
-                    try:
-                        images = json.loads(first_image)
-                        return images if images else []
-                    except:
-                        return [first_image]
-                return [first_image]
-        return []
+        """获取图片完整URL"""
+        if not obj.images:
+            return []
+
+        import json
+        images = []
+        
+        if isinstance(obj.images, str):
+            try:
+                images = json.loads(obj.images)
+            except json.JSONDecodeError:
+                images = obj.images.split(',')
+        else:
+            images = obj.images
+        
+        full_images = []
+        request = self.context.get('request')
+        for img in images:
+            if isinstance(img, str):
+                img = img.strip()
+                if img:
+                    # 图片存储在 /uploads/商品/ 目录下
+                    img_path = img
+                    if not img_path.startswith('商品/'):
+                        img_path = '商品/' + img_path
+                    if request:
+                        full_url = request.build_absolute_uri('/uploads/' + img_path)
+                    else:
+                        full_url = '/uploads/' + img_path
+                    full_images.append(full_url)
+        return full_images
 
 
 class CommentSerializer(serializers.ModelSerializer):

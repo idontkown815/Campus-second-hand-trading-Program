@@ -55,11 +55,16 @@ class ProductSerializer(serializers.ModelSerializer):
             if isinstance(img, str):
                 img = img.strip()
                 if img:
+                    # 图片存储在 /uploads/商品/ 目录下
+                    img_path = img
+                    # 如果路径不包含 商品/ 前缀，则添加
+                    if not img_path.startswith('商品/'):
+                        img_path = '商品/' + img_path
                     # 如果有request对象，构建完整的绝对URL
                     if request:
-                        full_url = request.build_absolute_uri('/uploads/' + img)
+                        full_url = request.build_absolute_uri('/uploads/' + img_path)
                     else:
-                        full_url = '/uploads/' + img
+                        full_url = '/uploads/' + img_path
                     full_images.append(full_url)
         return full_images
 

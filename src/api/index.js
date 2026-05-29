@@ -62,6 +62,9 @@ export default {
   updateProfile(data) {
     return api.put('/users/profile/', data)
   },
+  getUsers() {
+    return api.get('/users/')
+  },
   getProducts(params) {
     return api.get('/products/', { params })
   },

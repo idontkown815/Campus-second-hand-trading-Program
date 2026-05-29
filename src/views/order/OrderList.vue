@@ -208,43 +208,7 @@
               </div>
             </el-tab-pane>
 
-            <el-tab-pane label="已到货" name="arrived">
-              <div v-if="arrivedOrders.length === 0" class="empty-state">
-                <el-empty description="暂无已到货订单" />
-              </div>
-              <div v-else>
-                <el-card v-for="order in arrivedOrders" :key="order.id" class="order-card">
-                  <div class="order-header">
-                    <span class="order-id">订单号：{{ order.id }}</span>
-                    <span class="order-time">{{ formatDate(order.created_at) }}</span>
-                  </div>
-                  <div class="order-content">
-                    <div class="product-info">
-                      <img :src="getProductImage(order.product_images)" class="product-image" />
-                      <div class="product-detail">
-                        <h4>{{ order.product_title }}</h4>
-                        <p>价格：¥{{ order.product_price }}</p>
-                        <p>卖家：{{ order.seller }}</p>
-                        <div v-if="order.recipient_name" class="shipping-info">
-                          <p class="info-title">收货信息：</p>
-                          <p>收件人：{{ order.recipient_name }}</p>
-                          <p>电话：{{ order.recipient_phone }}</p>
-                          <p>地址：{{ order.shipping_address }}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="order-actions">
-                      <div class="action-buttons" v-if="isBuyer(order)">
-                        <el-button type="primary" @click="handleComplete(order.id)">确认收货</el-button>
-                      </div>
-                      <div v-else>
-                        <el-alert type="info" :closable="false" title="等待买家确认收货"></el-alert>
-                      </div>
-                    </div>
-                  </div>
-                </el-card>
-              </div>
-            </el-tab-pane>
+
 
             <el-tab-pane label="已完成" name="completed">
               <div v-if="completedOrders.length === 0" class="empty-state">
@@ -314,7 +278,7 @@ const initOrderShippingInfo = (order) => {
 // 根据URL参数设置标签页
 const setActiveTabFromQuery = () => {
   const tab = route.query.tab
-  if (['pending', 'paid', 'shipped', 'arrived', 'completed'].includes(tab)) {
+  if (['pending', 'paid', 'shipped', 'completed'].includes(tab)) {
     activeTab.value = tab
   }
 }
@@ -336,7 +300,6 @@ watch(() => route.path, (newPath) => {
 const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
 const paidOrders = computed(() => orders.value.filter(o => o.status === 'paid'))
 const shippedOrders = computed(() => orders.value.filter(o => o.status === 'shipped'))
-const arrivedOrders = computed(() => orders.value.filter(o => o.status === 'arrived'))
 const completedOrders = computed(() => orders.value.filter(o => o.status === 'completed'))
 
 const loadOrders = async () => {
@@ -376,10 +339,41 @@ const formatLockTime = (seconds) => {
 }
 
 const getProductImage = (images) => {
-  if (!images || !Array.isArray(images)) {
+  if (!images) {
     return '/placeholder.png'
   }
-  return images[0] || '/placeholder.png'
+  
+  let imageArray = []
+  
+  // 处理字符串格式（可能是 JSON 字符串或逗号分隔的字符串）
+  if (typeof images === 'string') {
+    try {
+      // 尝试解析 JSON 字符串
+      imageArray = JSON.parse(images)
+    } catch (e) {
+      // 如果不是有效 JSON，尝试按逗号分割
+      imageArray = images.split(',')
+    }
+  } else if (Array.isArray(images)) {
+    imageArray = images
+  }
+  
+  if (!imageArray || imageArray.length === 0) {
+    return '/placeholder.png'
+  }
+  
+  let imgPath = imageArray[0].trim()
+  
+  // 如果路径不包含完整 URL 且不包含 /uploads/ 前缀，则添加前缀
+  if (imgPath && !imgPath.startsWith('http') && !imgPath.startsWith('/uploads/')) {
+    // 如果路径不包含 商品/ 前缀，则添加
+    if (!imgPath.startsWith('商品/')) {
+      imgPath = '商品/' + imgPath
+    }
+    imgPath = '/uploads/' + imgPath
+  }
+  
+  return imgPath || '/placeholder.png'
 }
 
 const isBuyer = (order) => {
@@ -469,25 +463,7 @@ const handleShip = async (orderId) => {
   }
 }
 
-const handleArrive = async (orderId) => {
-  try {
-    await ElMessageBox.confirm('确定商品已到货吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    const response = await api.arriveTransaction(orderId)
-    if (response.data.code === 200) {
-      ElMessage.success('到货确认成功')
-      await loadOrders()
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || '到货确认失败')
-    }
-  }
-}
+
 
 const handleRefund = async (orderId) => {
   try {

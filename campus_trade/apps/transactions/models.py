@@ -34,7 +34,7 @@ class Transaction(models.Model):
         verbose_name_plural = '交易'
 
     def save(self, *args, **kwargs):
-        # 当交易状态变为待付款时，设置3分钟锁定时间
+        # 当交易状态变为待付款时，设置2小时锁定时间
         if self.status == 'pending' and not self.locked_until:
-            self.locked_until = timezone.now() + timedelta(minutes=3)
+            self.locked_until = timezone.now() + timedelta(hours=2)
         super().save(*args, **kwargs)

@@ -75,13 +75,15 @@ class LoginView(APIView):
                     'message': '学号或密码错误'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             refresh = RefreshToken.for_user(user)
+            is_admin = user.is_superuser
             return Response({
                 'code': 200,
                 'message': '登录成功',
                 'data': {
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
-                    'user': UserSerializer(user).data
+                    'user': UserSerializer(user).data,
+                    'is_admin': is_admin
                 }
             })
         return Response({
@@ -118,3 +120,21 @@ class ProfileView(APIView):
             'message': '更新失败',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserListView(APIView):
+    """用户列表视图（仅管理员可访问）"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        users = User.objects.all()
+        return Response({
+            'code': 200,
+            'message': '获取成功',
+            'data': UserSerializer(users, many=True).data
+        })

@@ -181,23 +181,24 @@ class ProductViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         file = request.FILES['file']
-        fs = FileSystemStorage()
+        # 指定存储到 商品 子目录
+        fs = FileSystemStorage(location=str(settings.MEDIA_ROOT / '商品'))
         
-        # 保存文件（直接保存到uploads目录）
+        # 保存文件（保存到uploads/商品目录）
         filename = fs.save(file.name, file)
         
-        # 只返回文件名，而不是完整URL
-        # 这样存储到数据库的是相对路径，序列化器会根据当前环境构建完整URL
+        # 返回相对路径（包含商品/前缀），序列化器会根据当前环境构建完整URL
         return Response({
             'code': 200,
             'message': '上传成功',
-            'data': {'url': filename}
+            'data': {'url': '商品/' + filename}
         })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def take_down(self, request, pk=None):
         try:
-            product = self.get_object()
+            # 使用完整的查询集获取商品，不受 get_queryset 过滤限制
+            product = Product.objects.get(pk=pk, is_deleted=False)
             # 检查是否是商品的发布者
             if product.seller != request.user:
                 return Response({
@@ -226,7 +227,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     def put_on_shelf(self, request, pk=None):
         """上架商品"""
         try:
-            product = self.get_object()
+            # 使用完整的查询集获取商品，不受 get_queryset 过滤限制
+            product = Product.objects.get(pk=pk, is_deleted=False)
             # 检查是否是商品的发布者
             if product.seller != request.user:
                 return Response({
