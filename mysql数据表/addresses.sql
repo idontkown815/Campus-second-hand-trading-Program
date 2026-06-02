@@ -1,5 +1,4 @@
--- Table structure for `addresses`
-DROP TABLE IF EXISTS `addresses`;
+-- Table: addresses
 CREATE TABLE `addresses` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL,
@@ -17,6 +16,4 @@ CREATE TABLE `addresses` (
   KEY `idx_is_default` (`is_default`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for `addresses`
-INSERT INTO `addresses` (`id`, `user_id`, `recipient_name`, `recipient_phone`, `province`, `city`, `district`, `detail_address`, `is_default`, `created_at`, `updated_at`) VALUES ('1', '14', '测试用户', '13800138000', '广东省', '深圳市', '南山区', '科技园1号', '0', '2026-05-29 15:42:19', '2026-05-29 15:42:19');
-
+INSERT INTO addresses (id, user_id, recipient_name, recipient_phone, province, city, district, detail_address, is_default, created_at, updated_at) VALUES (1, 14, '测试用户', '13800138000', '广东省', '深圳市', '南山区', '科技园1号', 0, 2026-05-29 15:42:19, 2026-05-29 15:42:19);

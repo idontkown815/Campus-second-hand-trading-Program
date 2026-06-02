@@ -1,5 +1,4 @@
--- Table structure for `django_admin_log`
-DROP TABLE IF EXISTS `django_admin_log`;
+-- Table: django_admin_log
 CREATE TABLE `django_admin_log` (
   `id` int NOT NULL AUTO_INCREMENT,
   `action_time` datetime(6) NOT NULL,
@@ -16,5 +15,4 @@ CREATE TABLE `django_admin_log` (
   CONSTRAINT `django_admin_log_user_id_c564eba6_fk_users_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `django_admin_log_chk_1` CHECK ((`action_flag` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
