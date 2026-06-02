@@ -1,5 +1,4 @@
--- Table structure for `auth_group_permissions`
-DROP TABLE IF EXISTS `auth_group_permissions`;
+-- Table: auth_group_permissions
 CREATE TABLE `auth_group_permissions` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `group_id` int NOT NULL,
@@ -10,5 +9,4 @@ CREATE TABLE `auth_group_permissions` (
   CONSTRAINT `auth_group_permissio_permission_id_84c5c92e_fk_auth_perm` FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`),
   CONSTRAINT `auth_group_permissions_group_id_b120cbf9_fk_auth_group_id` FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 

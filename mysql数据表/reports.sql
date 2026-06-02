@@ -1,5 +1,4 @@
--- Table structure for `reports`
-DROP TABLE IF EXISTS `reports`;
+-- Table: reports
 CREATE TABLE `reports` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `reason` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -15,5 +14,4 @@ CREATE TABLE `reports` (
   CONSTRAINT `reports_reported_user_id_ca2aab2b_fk_users_id` FOREIGN KEY (`reported_user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `reports_reporter_id_ef570044_fk_users_id` FOREIGN KEY (`reporter_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
