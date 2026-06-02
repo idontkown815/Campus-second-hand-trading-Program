@@ -62,4 +62,4 @@ class UserSerializer(serializers.ModelSerializer):
     """用户信息序列化器"""
     class Meta:
         model = User
-        fields = ['id', 'name', 'student_id', 'grade', 'major', 'avatar', 'is_superuser']
+        fields = ['id', 'name', 'student_id', 'grade', 'major', 'avatar', 'is_superuser', 'is_active']

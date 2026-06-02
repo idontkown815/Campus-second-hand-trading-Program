@@ -95,7 +95,19 @@
               <template #header>
                 <div class="card-header">
                   <span>用户列表</span>
-                  <el-button type="primary" @click="loadUsers">刷新</el-button>
+                  <div class="card-actions">
+                    <el-input 
+                      v-model="searchKeyword" 
+                      placeholder="搜索姓名、学号或专业" 
+                      style="width: 250px; margin-right: 10px;"
+                      @keyup.enter="loadUsers"
+                    >
+                      <template #append>
+                        <el-button @click="loadUsers">搜索</el-button>
+                      </template>
+                    </el-input>
+                    <el-button type="primary" @click="loadUsers">刷新</el-button>
+                  </div>
                 </div>
               </template>
               <el-table :data="users" style="width: 100%">
@@ -111,12 +123,67 @@
                     </el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column prop="is_active" label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="row.is_active ? 'success' : 'warning'">
+                      {{ row.is_active ? '正常' : '禁用' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="250">
+                  <template #default="{ row }">
+                    <el-button size="small" type="primary" @click="handleEditUser(row)">编辑</el-button>
+                    <el-button 
+                      size="small" 
+                      :type="row.is_active ? 'warning' : 'success'" 
+                      @click="handleToggleActive(row)"
+                    >
+                      {{ row.is_active ? '禁用' : '启用' }}
+                    </el-button>
+                    <el-button 
+                      size="small" 
+                      type="danger" 
+                      @click="handleDeleteUser(row)"
+                      :disabled="row.id === userStore.user?.id"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
               </el-table>
             </el-card>
           </div>
         </el-main>
       </el-container>
     </el-container>
+
+    <!-- 编辑用户弹窗 -->
+    <el-dialog title="编辑用户" v-model="editDialogVisible" width="450px">
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="姓名">
+          <el-input v-model="editForm.name" />
+        </el-form-item>
+        <el-form-item label="学号">
+          <el-input v-model="editForm.student_id" disabled />
+        </el-form-item>
+        <el-form-item label="年级">
+          <el-input v-model="editForm.grade" />
+        </el-form-item>
+        <el-form-item label="专业">
+          <el-input v-model="editForm.major" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-switch v-model="editForm.is_superuser" active-text="管理员" inactive-text="普通用户" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="editForm.is_active" active-text="正常" inactive-text="禁用" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSaveEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -138,6 +205,17 @@ const stats = ref({
   totalProducts: 0,
   pendingProducts: 0,
   totalTransactions: 0
+})
+const searchKeyword = ref('')
+const editDialogVisible = ref(false)
+const editForm = ref({
+  id: '',
+  name: '',
+  student_id: '',
+  grade: '',
+  major: '',
+  is_superuser: false,
+  is_active: true
 })
 
 const handleMenuSelect = (index) => {
@@ -162,11 +240,74 @@ const loadProducts = async () => {
 
 const loadUsers = async () => {
   try {
-    const response = await api.getUsers()
+    const params = searchKeyword.value ? { search: searchKeyword.value } : {}
+    const response = await api.getUsers(params)
     users.value = response.data.data || []
   } catch (error) {
     console.error(error)
     ElMessage.error('获取用户列表失败')
+  }
+}
+
+const handleEditUser = (user) => {
+  editForm.value = {
+    id: user.id,
+    name: user.name || '',
+    student_id: user.student_id || '',
+    grade: user.grade || '',
+    major: user.major || '',
+    is_superuser: user.is_superuser || false,
+    is_active: user.is_active || true
+  }
+  editDialogVisible.value = true
+}
+
+const handleSaveEdit = async () => {
+  try {
+    await api.updateUser(editForm.value.id, editForm.value)
+    ElMessage.success('更新成功')
+    editDialogVisible.value = false
+    loadUsers()
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('更新失败')
+  }
+}
+
+const handleToggleActive = async (user) => {
+  try {
+    const action = user.is_active ? '禁用' : '启用'
+    await ElMessageBox.confirm(`确定要${action}该用户吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await api.updateUser(user.id, { is_active: !user.is_active })
+    ElMessage.success(`${action}成功`)
+    loadUsers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+      ElMessage.error('操作失败')
+    }
+  }
+}
+
+const handleDeleteUser = async (user) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该用户吗？此操作不可恢复！', '警告', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'danger'
+    })
+    await api.deleteUser(user.id)
+    ElMessage.success('删除成功')
+    loadUsers()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+      ElMessage.error('删除失败')
+    }
   }
 }
 
@@ -311,5 +452,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.el-form-item {
+  margin-bottom: 15px;
 }
 </style>

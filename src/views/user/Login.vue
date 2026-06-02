@@ -73,7 +73,8 @@ const handleLogin = async () => {
     router.push('/')
   } catch (error) {
     console.error(error)
-    ElMessage.error('学号或密码错误，请检查后重试')
+    const errorMessage = error.response?.data?.message || '登录失败，请检查后重试'
+    ElMessage.error(errorMessage)
   } finally {
     loading.value = false
   }

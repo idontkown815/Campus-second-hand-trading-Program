@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import models
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserSerializer
 
 User = get_user_model()
@@ -74,6 +75,12 @@ class LoginView(APIView):
                     'code': 401,
                     'message': '学号或密码错误'
                 }, status=status.HTTP_401_UNAUTHORIZED)
+            # 检查用户是否被禁用
+            if not user.is_active:
+                return Response({
+                    'code': 401,
+                    'message': '您的账号已被禁用，请联系管理员'
+                }, status=status.HTTP_401_UNAUTHORIZED)
             refresh = RefreshToken.for_user(user)
             is_admin = user.is_superuser
             return Response({
@@ -132,9 +139,99 @@ class UserListView(APIView):
                 'code': 403,
                 'message': '权限不足，仅管理员可访问'
             }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 支持搜索
+        search_query = request.query_params.get('search', '')
         users = User.objects.all()
+        
+        if search_query:
+            users = users.filter(
+                models.Q(name__icontains=search_query) |
+                models.Q(student_id__icontains=search_query) |
+                models.Q(major__icontains=search_query)
+            )
+        
         return Response({
             'code': 200,
             'message': '获取成功',
             'data': UserSerializer(users, many=True).data
         })
+
+
+class UserDetailView(APIView):
+    """用户详情视图（仅管理员可访问）"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            return Response({
+                'code': 200,
+                'message': '获取成功',
+                'data': UserSerializer(user).data
+            })
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, user_id):
+        """更新用户信息（仅管理员）"""
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            # 允许管理员更新用户信息和权限
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'code': 200,
+                    'message': '更新成功',
+                    'data': serializer.data
+                })
+            return Response({
+                'code': 400,
+                'message': '更新失败',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, user_id):
+        """删除用户（仅管理员）"""
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            # 不允许删除自己
+            if user.id == request.user.id:
+                return Response({
+                    'code': 400,
+                    'message': '不能删除自己的账号'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            user.delete()
+            return Response({
+                'code': 200,
+                'message': '删除成功'
+            })
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
