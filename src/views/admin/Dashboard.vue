@@ -220,6 +220,9 @@ const editForm = ref({
 
 const handleMenuSelect = (index) => {
   activeMenu.value = index
+  if (index === 'dashboard') {
+    loadStats()
+  }
 }
 
 const handleLogout = () => {
@@ -228,10 +231,22 @@ const handleLogout = () => {
   router.push('/admin/login')
 }
 
+const loadStats = async () => {
+  try {
+    const response = await api.getAdminStats()
+    if (response.data.code === 200) {
+      stats.value = response.data.data
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取统计数据失败')
+  }
+}
+
 const loadProducts = async () => {
   try {
-    const response = await api.getProducts({ page_size: 100 })
-    products.value = response.data.data?.results || response.data.data || []
+    const response = await api.getAdminProducts()
+    products.value = response.data.data || []
   } catch (error) {
     console.error(error)
     ElMessage.error('获取商品列表失败')
@@ -317,7 +332,8 @@ const getStatusType = (status) => {
     'available': 'success',
     'locked': 'info',
     'sold': 'primary',
-    'removed': 'danger'
+    'violation': 'danger',
+    'rejected': 'danger'
   }
   return typeMap[status] || 'info'
 }
@@ -328,7 +344,8 @@ const getStatusText = (status) => {
     'available': '在售',
     'locked': '锁定中',
     'sold': '已售出',
-    'removed': '已下架'
+    'violation': '违规下架',
+    'rejected': '已下架'
   }
   return textMap[status] || status
 }
@@ -341,13 +358,15 @@ const handleProductAction = async (product, action) => {
         cancelButtonText: '取消',
         type: 'warning'
       })
-      await api.takeDownProduct(product.id)
+      await api.adminTakeDownProduct(product.id)
       ElMessage.success('商品已下架')
       loadProducts()
+      loadStats()
     } else if (action === 'approve') {
-      await api.putOnShelf(product.id)
+      await api.approveProduct(product.id)
       ElMessage.success('商品已审核通过')
       loadProducts()
+      loadStats()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -363,7 +382,9 @@ onMounted(() => {
     router.push('/admin/login')
     return
   }
+  loadStats()
   loadProducts()
+  loadUsers()
 })
 </script>
 

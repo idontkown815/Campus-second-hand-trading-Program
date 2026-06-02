@@ -23,6 +23,7 @@ class Product(models.Model):
         ('available', '在售'),
         ('locked', '锁定中'),
         ('sold', '已售出'),
+        ('violation', '违规下架'),
         ('rejected', '已下架'),
     ]
 

@@ -389,11 +389,12 @@ const handlePublish = async () => {
     console.log('准备发送的商品数据:', productData)
     
     if (isEditMode.value) {
-      await productStore.updateProduct(productId.value, productData)
-      ElMessage.success('修改成功')
+      const response = await productStore.updateProduct(productId.value, productData)
+      const message = response?.data?.message || '修改成功'
+      ElMessage.success(message)
     } else {
       await productStore.createProduct(productData)
-      ElMessage.success('发布成功')
+      ElMessage.success('发布成功，请等待管理员审核')
     }
     router.push('/my/products')
   } catch (error) {

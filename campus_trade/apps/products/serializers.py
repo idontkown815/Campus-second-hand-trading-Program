@@ -101,7 +101,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
         validated_data['seller'] = self.context['request'].user
 
-        validated_data['status'] = 'available'
+        validated_data['status'] = 'pending'
 
         return super().create(validated_data)
 

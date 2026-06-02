@@ -86,6 +86,7 @@ const getStatusType = (product) => {
   if (status === 'sold' && txStatus === 'arrived') return 'primary'
   if (status === 'sold' && txStatus === 'completed') return 'success'
   if (status === 'rejected') return 'danger'
+  if (status === 'violation') return 'danger'
   if (status === 'pending') return 'info'
 
   return 'info'
@@ -102,6 +103,7 @@ const getStatusText = (product) => {
   if (status === 'sold' && txStatus === 'arrived') return '已到货'
   if (status === 'sold' && txStatus === 'completed') return '已完成'
   if (status === 'rejected') return '已下架'
+  if (status === 'violation') return '违规下架'
   if (status === 'pending') return '待审核'
 
   return status
@@ -132,8 +134,6 @@ const getStatusHint = (product) => {
 }
 
 const loadMyProducts = async () => {
-  if (!userStore.isLoggedIn) return
-
   loading.value = true
   try {
     const response = await productStore.getMyProducts()
@@ -159,8 +159,9 @@ const takeDownProduct = async (id) => {
 
 const putOnShelf = async (id) => {
   try {
-    await productStore.putOnShelf(id)
-    ElMessage.success('商品已上架')
+    const response = await productStore.putOnShelf(id)
+    const message = response?.data?.message || '商品已上架'
+    ElMessage.success(message)
     await loadMyProducts()
   } catch (error) {
     console.error(error)

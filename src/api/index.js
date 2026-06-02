@@ -155,5 +155,20 @@ export default {
   },
   adminReleaseAll() {
     return api.post('/products/admin_release_all/')
+  },
+  approveProduct(id) {
+    return api.post(`/products/${id}/approve/`)
+  },
+  rejectProduct(id) {
+    return api.post(`/products/${id}/reject/`)
+  },
+  adminTakeDownProduct(id) {
+    return api.post(`/products/${id}/admin_take_down/`)
+  },
+  getAdminProducts() {
+    return api.get('/products/admin_products/')
+  },
+  getAdminStats() {
+    return api.get('/products/admin_stats/')
   }
 }
