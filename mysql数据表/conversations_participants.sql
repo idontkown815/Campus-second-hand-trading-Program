@@ -1,4 +1,4 @@
--- Table: conversations_participants
+-- 表: conversations_participants
 CREATE TABLE `conversations_participants` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `conversation_id` bigint NOT NULL,
@@ -8,17 +8,4 @@ CREATE TABLE `conversations_participants` (
   KEY `conversations_participants_user_id_968b244f_fk_users_id` (`user_id`),
   CONSTRAINT `conversations_partic_conversation_id_988acf55_fk_conversat` FOREIGN KEY (`conversation_id`) REFERENCES `conversations` (`id`),
   CONSTRAINT `conversations_participants_user_id_968b244f_fk_users_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (2, 1, 6);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (1, 1, 12);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (4, 2, 6);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (3, 2, 12);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (6, 3, 6);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (5, 3, 12);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (7, 4, 14);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (8, 4, 15);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (9, 5, 14);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (10, 5, 15);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (12, 6, 14);
-INSERT INTO conversations_participants (id, conversation_id, user_id) VALUES (11, 6, 17);
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

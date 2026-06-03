@@ -67,6 +67,11 @@ const routes = [
     path: '/messages',
     name: 'ChatList',
     component: () => import('../views/chat/ChatList.vue')
+  },
+  {
+    path: '/my/favorites',
+    name: 'MyFavorites',
+    component: () => import('../views/product/MyFavorites.vue')
   }
 ]
 
@@ -75,8 +80,10 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
+  
+  await userStore.init()
 
   if (to.meta.requiresAdmin) {
     if (!userStore.isLoggedIn) {

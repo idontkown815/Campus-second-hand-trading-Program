@@ -86,12 +86,13 @@ class ConversationSerializer(serializers.ModelSerializer):
 
 class FavoriteSerializer(serializers.ModelSerializer):
     """收藏序列化器"""
-    user = serializers.StringRelatedField()
-    product = serializers.StringRelatedField()
+    user = serializers.StringRelatedField(read_only=True)
+    product = ProductSummarySerializer(read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Favorite
-        fields = ['id', 'user', 'product', 'created_at']
+        fields = ['id', 'user', 'product', 'product_id', 'created_at']
 
 
 class ReportSerializer(serializers.ModelSerializer):

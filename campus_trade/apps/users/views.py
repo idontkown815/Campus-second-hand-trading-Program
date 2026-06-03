@@ -68,15 +68,15 @@ class LoginView(APIView):
             except User.DoesNotExist:
                 return Response({
                     'code': 401,
-                    'message': '学号或密码错误'
+                    'message': '该学号尚未注册'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             if not user.check_password(password):
                 return Response({
                     'code': 401,
-                    'message': '学号或密码错误'
+                    'message': '密码错误，请重新输入'
                 }, status=status.HTTP_401_UNAUTHORIZED)
-            # 检查用户是否被禁用
-            if not user.is_active:
+            # 检查用户是否被禁用（超级管理员不受此限制）
+            if not user.is_active and not user.is_superuser:
                 return Response({
                     'code': 401,
                     'message': '您的账号已被禁用，请联系管理员'
@@ -142,7 +142,8 @@ class UserListView(APIView):
         
         # 支持搜索
         search_query = request.query_params.get('search', '')
-        users = User.objects.all()
+        # 排除超级管理员，主管理员不属于用户管理范畴
+        users = User.objects.filter(is_superuser=False)
         
         if search_query:
             users = users.filter(
@@ -190,6 +191,12 @@ class UserDetailView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
         try:
             user = User.objects.get(id=user_id)
+            # 禁止修改超级管理员账号
+            if user.is_superuser:
+                return Response({
+                    'code': 403,
+                    'message': '禁止修改超级管理员账号'
+                }, status=status.HTTP_403_FORBIDDEN)
             # 允许管理员更新用户信息和权限
             serializer = UserSerializer(user, data=request.data, partial=True)
             if serializer.is_valid():
@@ -219,6 +226,12 @@ class UserDetailView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
         try:
             user = User.objects.get(id=user_id)
+            # 禁止删除超级管理员账号
+            if user.is_superuser:
+                return Response({
+                    'code': 403,
+                    'message': '禁止删除超级管理员账号'
+                }, status=status.HTTP_403_FORBIDDEN)
             # 不允许删除自己
             if user.id == request.user.id:
                 return Response({

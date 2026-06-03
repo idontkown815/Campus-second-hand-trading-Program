@@ -9,7 +9,7 @@
         <el-button type="primary" @click="goToLogin">立即登录</el-button>
       </div>
       <div v-else>
-        <el-table :data="products" style="width: 100%" v-loading="loading">
+        <el-table :data="products" style="width: 100%" v-loading="loading" :empty-text="''">
           <el-table-column prop="title" label="商品标题" width="200">
             <template #default="scope">
               <el-link type="primary" @click="goToDetail(scope.row.id)">{{ scope.row.title }}</el-link>

@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from .models import Conversation, Message, Favorite, Report, Block, Comment
 from .serializers import ConversationSerializer, MessageSerializer, FavoriteSerializer, ReportSerializer, BlockSerializer, CommentSerializer
 
@@ -315,12 +316,111 @@ class FavoriteViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # 只返回当前用户的收藏
-        queryset = Favorite.objects.filter(user=request.user)
-        serializer = self.get_serializer(queryset, many=True)
+        queryset = Favorite.objects.filter(user=request.user).order_by('-created_at')
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response({
             'code': 200,
             'message': '获取成功',
             'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        # 创建收藏
+        product_id = request.data.get('product_id')
+        
+        if not product_id:
+            return Response({
+                'code': 400,
+                'message': '请提供商品ID',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return Response({
+                'code': 400,
+                'message': '商品ID必须为整数',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.products.models import Product
+        try:
+            product = Product.objects.get(id=product_id, is_deleted=False, status='available')
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 检查是否已收藏
+        existing_favorite = Favorite.objects.filter(user=request.user, product=product).first()
+        if existing_favorite:
+            return Response({
+                'code': 400,
+                'message': '您已收藏此商品',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        favorite = Favorite.objects.create(user=request.user, product=product)
+        serializer = self.get_serializer(favorite, context={'request': request})
+        return Response({
+            'code': 200,
+            'message': '收藏成功',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        # 删除收藏
+        try:
+            favorite = self.get_object()
+            if favorite.user != request.user:
+                return Response({
+                    'code': 403,
+                    'message': '无权取消此收藏',
+                    'data': None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            favorite.delete()
+            return Response({
+                'code': 200,
+                'message': '取消收藏成功',
+                'data': None
+            })
+        except Favorite.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '收藏不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def check(self, request):
+        """检查商品是否已收藏"""
+        product_id = request.query_params.get('product_id')
+        
+        if not product_id:
+            return Response({
+                'code': 400,
+                'message': '请提供商品ID',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return Response({
+                'code': 400,
+                'message': '商品ID必须为整数',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        is_favorited = Favorite.objects.filter(user=request.user, product_id=product_id).exists()
+        return Response({
+            'code': 200,
+            'message': '获取成功',
+            'data': {'is_favorited': is_favorited}
         })
 
 

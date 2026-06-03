@@ -28,6 +28,10 @@
           </div>
           <div class="header-right">
             <span>欢迎，{{ userStore.user?.name || '管理员' }}</span>
+            <div class="avatar">
+              <img v-if="userStore.user?.avatar" :src="userStore.user.avatar" class="avatar-img" />
+              <div v-else class="avatar-placeholder">{{ userStore.user?.name?.charAt(0) || 'A' }}</div>
+            </div>
             <el-button @click="handleLogout">退出登录</el-button>
           </div>
         </el-header>
@@ -71,7 +75,11 @@
               </template>
               <el-table :data="products" style="width: 100%">
                 <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column prop="title" label="商品名称" min-width="150" />
+                <el-table-column prop="title" label="商品名称" min-width="150">
+                  <template #default="{ row }">
+                    <el-link type="primary" @click="handleViewProduct(row)">{{ row.title }}</el-link>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="price" label="价格" width="100" />
                 <el-table-column prop="status" label="状态" width="100">
                   <template #default="{ row }">
@@ -184,6 +192,90 @@
         <el-button type="primary" @click="handleSaveEdit">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 商品详情弹窗 -->
+    <el-dialog title="商品详情" v-model="productDetailVisible" width="600px">
+      <div v-if="currentProduct" class="product-detail">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">商品名称：</span>
+              <span class="value">{{ currentProduct.title }}</span>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">价格：</span>
+              <span class="value price">¥{{ currentProduct.price }}</span>
+            </div>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">分类：</span>
+              <span class="value">{{ currentProduct.category || '未分类' }}</span>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">校区：</span>
+              <span class="value">{{ currentProduct.campus_location || '未填写' }}</span>
+            </div>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">楼栋：</span>
+              <span class="value">{{ currentProduct.building_location || '未填写' }}</span>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">卖家：</span>
+              <span class="value">{{ currentProduct.seller || '未知' }}</span>
+            </div>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">状态：</span>
+              <el-tag :type="getStatusType(currentProduct.status)">
+                {{ getStatusText(currentProduct.status) }}
+              </el-tag>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <div class="detail-item">
+              <span class="label">发布时间：</span>
+              <span class="value">{{ formatDate(currentProduct.created_at) }}</span>
+            </div>
+          </el-col>
+        </el-row>
+        <div class="detail-item">
+          <span class="label">商品描述：</span>
+          <div class="description">{{ currentProduct.description || '暂无描述' }}</div>
+        </div>
+        <div v-if="currentProduct.images && currentProduct.images.length > 0" class="detail-item">
+          <span class="label">商品图片：</span>
+          <div class="images">
+            <el-image 
+              v-for="(img, index) in currentProduct.images" 
+              :key="index"
+              :src="img" 
+              :preview-src-list="currentProduct.images"
+              fit="cover"
+              style="width: 100px; height: 100px; margin-right: 10px; border-radius: 4px;"
+            />
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="productDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -217,6 +309,8 @@ const editForm = ref({
   is_superuser: false,
   is_active: true
 })
+const productDetailVisible = ref(false)
+const currentProduct = ref(null)
 
 const handleMenuSelect = (index) => {
   activeMenu.value = index
@@ -275,6 +369,11 @@ const handleEditUser = (user) => {
     is_active: user.is_active || true
   }
   editDialogVisible.value = true
+}
+
+const handleViewProduct = (product) => {
+  currentProduct.value = product
+  productDetailVisible.value = true
 }
 
 const handleSaveEdit = async () => {
@@ -350,6 +449,22 @@ const getStatusText = (status) => {
   return textMap[status] || status
 }
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '未知'
+  try {
+    const date = new Date(dateStr)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (error) {
+    return dateStr
+  }
+}
+
 const handleProductAction = async (product, action) => {
   try {
     if (action === 'remove') {
@@ -377,7 +492,7 @@ const handleProductAction = async (product, action) => {
 }
 
 onMounted(() => {
-  if (!userStore.isLoggedIn || !userStore.user?.is_superuser) {
+  if (!userStore.isLoggedIn || !userStore.isAdmin) {
     ElMessage.error('请先以管理员身份登录')
     router.push('/admin/login')
     return
@@ -444,7 +559,34 @@ onMounted(() => {
   gap: 15px;
 }
 
-.admin-main {
+.avatar {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.stat-card {
   background: #f0f2f5;
   padding: 20px;
 }
@@ -482,5 +624,47 @@ onMounted(() => {
 
 .el-form-item {
   margin-bottom: 15px;
+}
+
+.product-detail {
+  padding: 10px 0;
+}
+
+.detail-item {
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.detail-item .label {
+  font-weight: bold;
+  color: #606266;
+  margin-right: 8px;
+}
+
+.detail-item .value {
+  color: #303133;
+}
+
+.detail-item .price {
+  color: #f56c6c;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.detail-item .description {
+  margin-top: 8px;
+  padding: 10px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  color: #606266;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.detail-item .images {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 </style>

@@ -37,6 +37,7 @@ class ProductSerializer(serializers.ModelSerializer):
             return []
 
         import json
+        import urllib.parse
         images = []
         
         # 尝试解析 JSON 字符串
@@ -55,6 +56,8 @@ class ProductSerializer(serializers.ModelSerializer):
             if isinstance(img, str):
                 img = img.strip()
                 if img:
+                    # 对URL编码的路径进行解码
+                    img = urllib.parse.unquote(img)
                     # 图片存储在 /uploads/商品/ 目录下
                     img_path = img
                     # 如果路径不包含 商品/ 前缀，则添加

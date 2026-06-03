@@ -7,10 +7,32 @@ export const useUserStore = defineStore('user', {
     user: null,
     token: localStorage.getItem('access_token') || null,
     isLoggedIn: !!localStorage.getItem('access_token'),
-    isAdmin: localStorage.getItem('is_admin') === 'true'
+    isAdmin: localStorage.getItem('is_admin') === 'true',
+    initialized: false
   }),
 
   actions: {
+    async init() {
+      if (this.initialized) return
+      
+      const token = localStorage.getItem('access_token')
+      const isAdminStr = localStorage.getItem('is_admin')
+      
+      if (token) {
+        this.token = token
+        this.isLoggedIn = true
+        this.isAdmin = isAdminStr === 'true'
+        
+        try {
+          await this.getProfile()
+        } catch (error) {
+          this.logout()
+          return
+        }
+      }
+      
+      this.initialized = true
+    },
     async register(data) {
       const response = await api.register(data)
       return response.data
