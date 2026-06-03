@@ -93,8 +93,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_404_NOT_FOUND)
         
         # 允许卖家和买家访问商品详情
-        is_buyer = request.user and instance.transactions.filter(buyer=request.user).exists()
-        is_seller = request.user and instance.seller == request.user
+        is_buyer = False
+        is_seller = False
+        
+        if request.user.is_authenticated:
+            is_buyer = instance.transactions.filter(buyer=request.user).exists()
+            is_seller = instance.seller == request.user
         
         if not (is_buyer or is_seller) and instance.status != 'available':
             return Response({

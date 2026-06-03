@@ -106,6 +106,7 @@ const isFirstLoad = ref(true) // 标记是否为首次加载
 watch(() => props.modelValue, (val) => {
   visible.value = val
   if (val) {
+    messageContent.value = '' // 确保输入框为空
     if (props.isNewConversation && props.conversationId) {
       loadMessages()
       startRefresh()
@@ -226,6 +227,7 @@ const handleClose = () => {
   visible.value = false
   stopRefresh()
   isFirstLoad.value = true // 关闭时重置首次加载标记，下次打开重新显示loading
+  messageContent.value = '' // 关闭时清空输入框
 }
 
 onUnmounted(() => {

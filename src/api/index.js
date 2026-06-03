@@ -29,12 +29,24 @@ api.interceptors.response.use(
       const { status, data } = error.response
       const message = data?.message || '请求失败'
       if (status === 401) {
-        // 如果当前已经在登录页面，不进行重定向
-        if (window.location.pathname !== '/login') {
+        // 获取当前是否为管理员
+        const isAdmin = localStorage.getItem('is_admin') === 'true'
+        const adminLoginPath = '/admin/login'
+        const userLoginPath = '/login'
+        
+        // 获取当前路径
+        const currentPath = window.location.pathname
+        
+        // 判断应该跳转到哪个登录页
+        const targetLoginPath = isAdmin ? adminLoginPath : userLoginPath
+        
+        // 如果当前已经在正确的登录页面，不进行重定向
+        if (currentPath !== targetLoginPath) {
           ElMessage.error('登录已过期，请重新登录')
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
-          window.location.href = '/login'
+          localStorage.removeItem('is_admin')
+          window.location.href = targetLoginPath
         } else {
           // 在登录页面，直接返回错误，让登录页面处理
           return Promise.reject(error)
@@ -75,16 +87,16 @@ export default {
     return api.delete(`/users/${id}/`)
   },
   getProducts(params) {
-    return api.get('/products/', { params })
+    return api.get('/products/', { params, skipAuth: true })
   },
   getProduct(id) {
-    return api.get(`/products/${id}/`)
+    return api.get(`/products/${id}/`, { skipAuth: true })
   },
   createProduct(data) {
     return api.post('/products/', data)
   },
   getCategories() {
-    return api.get('/products/categories/')
+    return api.get('/products/categories/', { skipAuth: true })
   },
   getMyProducts() {
     return api.get('/products/my_products/')
@@ -170,5 +182,18 @@ export default {
   },
   getAdminStats() {
     return api.get('/products/admin_stats/')
+  },
+  // 收藏相关API
+  getFavorites() {
+    return api.get('/communications/favorites/')
+  },
+  addFavorite(productId) {
+    return api.post('/communications/favorites/', { product_id: productId })
+  },
+  removeFavorite(favoriteId) {
+    return api.delete(`/communications/favorites/${favoriteId}/`)
+  },
+  checkFavorite(productId) {
+    return api.get('/communications/favorites/check/', { params: { product_id: productId } })
   }
 }

@@ -1,4 +1,4 @@
--- Table: blocks
+-- 表: blocks
 CREATE TABLE `blocks` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
@@ -10,4 +10,3 @@ CREATE TABLE `blocks` (
   CONSTRAINT `blocks_blocked_id_bd10efad_fk_users_id` FOREIGN KEY (`blocked_id`) REFERENCES `users` (`id`),
   CONSTRAINT `blocks_blocker_id_c428556e_fk_users_id` FOREIGN KEY (`blocker_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

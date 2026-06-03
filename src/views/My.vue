@@ -213,7 +213,7 @@ const goToMyProducts = () => {
 }
 
 const goToFavorites = () => {
-  ElMessage.info('我的收藏功能即将上线')
+  router.push('/my/favorites')
 }
 
 const goToFootprint = () => {

@@ -7,11 +7,18 @@
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
               <span>欢迎，{{ userStore.user?.name }}</span>
+              <div class="avatar" @click="goToMy">
+                <img v-if="userStore.user?.avatar" :src="userStore.user.avatar" class="avatar-img" />
+                <div v-else class="avatar-placeholder">{{ userStore.user?.name?.charAt(0) || 'U' }}</div>
+              </div>
               <el-button @click="handleLogout">退出</el-button>
             </template>
             <template v-else>
               <el-button @click="$router.push('/login')">登录</el-button>
               <el-button type="primary" @click="$router.push('/register')">注册</el-button>
+              <div class="avatar" @click="$router.push('/my')">
+                <div class="avatar-placeholder">U</div>
+              </div>
             </template>
           </div>
         </div>
@@ -98,7 +105,18 @@
           </el-row>
           <el-card class="description-card" style="margin-top: 20px;">
             <template #header>
-              <h3>商品描述</h3>
+              <div class="description-header">
+                <h3>商品描述</h3>
+                <el-button 
+                  v-if="userStore.isLoggedIn"
+                  @click="handleFavorite" 
+                  :type="isFavorited ? 'primary' : 'default'"
+                  class="favorite-btn"
+                  :loading="favoriteLoading">
+                  <el-icon><Star :filled="isFavorited" /></el-icon>
+                  {{ isFavorited ? '已收藏' : '收藏' }}
+                </el-button>
+              </div>
             </template>
             <p>{{ product.description }}</p>
           </el-card>
@@ -131,6 +149,7 @@ import ProductComment from './ProductComment.vue'
 import ChatWindow from '../chat/ChatWindow.vue'
 import api from '../../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -141,6 +160,9 @@ const lockRemainingTime = ref('')
 const chatWindowVisible = ref(false)
 const chatConversationId = ref(null)
 const isNewConversation = ref(false)
+const isFavorited = ref(false)
+const favoriteLoading = ref(false)
+const favoriteId = ref(null)
 let lockTimer = null
 
 const loadProduct = async () => {
@@ -302,10 +324,65 @@ const handleLogout = () => {
   router.push('/')
 }
 
+const goToMy = () => {
+  router.push('/my')
+}
+
+const checkFavoriteStatus = async () => {
+  if (!userStore.isLoggedIn || !product.value?.id) return
+  
+  try {
+    const response = await api.checkFavorite(product.value.id)
+    if (response.data.code === 200) {
+      isFavorited.value = response.data.data.is_favorited
+    }
+  } catch (error) {
+    console.error('检查收藏状态失败:', error)
+  }
+}
+
+const handleFavorite = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  if (!product.value?.id) {
+    ElMessage.error('商品信息未加载')
+    return
+  }
+
+  favoriteLoading.value = true
+
+  try {
+    if (isFavorited.value) {
+      // 取消收藏
+      await api.removeFavorite(favoriteId.value)
+      ElMessage.success('已取消收藏')
+      isFavorited.value = false
+      favoriteId.value = null
+    } else {
+      // 添加收藏
+      const response = await api.addFavorite(product.value.id)
+      if (response.data.code === 200) {
+        ElMessage.success('收藏成功')
+        isFavorited.value = true
+        favoriteId.value = response.data.data.id
+      }
+    }
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '操作失败')
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await loadProduct()
   if (userStore.isLoggedIn) {
     await loadMyTransaction()
+    await checkFavoriteStatus()
     if (currentTransaction.value?.status === 'pending') {
       startLockTimer()
     }
@@ -347,6 +424,33 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.avatar {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
 .product-detail-container {
   min-height: 100vh;
   background: #f5f5f5;
@@ -386,6 +490,18 @@ onUnmounted(() => {
 
 .description-card {
   margin-top: 20px;
+}
+
+.description-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.favorite-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .lock-info {

@@ -58,10 +58,9 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const response = await userStore.login(form.value.student_id, form.value.password)
-    const isAdmin = response.data?.is_admin
-
-    if (!isAdmin) {
+    await userStore.login(form.value.student_id, form.value.password)
+    
+    if (!userStore.isAdmin) {
       userStore.logout()
       ElMessage.error('您不是管理员，无权访问后台管理系统')
       return
