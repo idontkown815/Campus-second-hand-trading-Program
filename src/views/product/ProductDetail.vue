@@ -378,9 +378,20 @@ const handleFavorite = async () => {
   }
 }
 
+const recordViewHistory = async () => {
+  if (!userStore.isLoggedIn || !product.value?.id) return
+  
+  try {
+    await api.addViewHistory(product.value.id)
+  } catch (error) {
+    console.error('记录浏览历史失败:', error)
+  }
+}
+
 onMounted(async () => {
   await loadProduct()
   if (userStore.isLoggedIn) {
+    await recordViewHistory()
     await loadMyTransaction()
     await checkFavoriteStatus()
     if (currentTransaction.value?.status === 'pending') {

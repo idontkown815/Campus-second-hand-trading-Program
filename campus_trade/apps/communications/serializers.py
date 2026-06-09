@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Conversation, Message, Favorite, Report, Block, Comment
+from .models import Conversation, Message, Favorite, Report, Block, Comment, ViewHistory
 
 
 class ProductSummarySerializer(serializers.ModelSerializer):
@@ -114,3 +114,14 @@ class BlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = Block
         fields = ['id', 'blocker', 'blocked', 'created_at']
+
+
+class ViewHistorySerializer(serializers.ModelSerializer):
+    """浏览历史序列化器"""
+    user = serializers.StringRelatedField(read_only=True)
+    product = ProductSummarySerializer(read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = ViewHistory
+        fields = ['id', 'user', 'product', 'product_id', 'viewed_at']

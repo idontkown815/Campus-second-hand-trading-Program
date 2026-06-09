@@ -217,7 +217,7 @@ const goToFavorites = () => {
 }
 
 const goToFootprint = () => {
-  ElMessage.info('我的足迹功能即将上线')
+  router.push('/my/footprint')
 }
 
 const goToSettings = () => {

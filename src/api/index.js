@@ -195,5 +195,18 @@ export default {
   },
   checkFavorite(productId) {
     return api.get('/communications/favorites/check/', { params: { product_id: productId } })
+  },
+  // 浏览历史相关API
+  getViewHistory() {
+    return api.get('/communications/view_history/')
+  },
+  addViewHistory(productId) {
+    return api.post('/communications/view_history/', { product_id: productId })
+  },
+  deleteViewHistory(id) {
+    return api.delete(`/communications/view_history/${id}/`)
+  },
+  clearViewHistory() {
+    return api.delete('/communications/view_history/clear/')
   }
 }

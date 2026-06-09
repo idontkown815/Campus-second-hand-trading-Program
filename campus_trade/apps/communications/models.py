@@ -82,3 +82,16 @@ class Comment(models.Model):
         verbose_name = '评论'
         verbose_name_plural = '评论'
         ordering = ['-created_at']
+
+
+class ViewHistory(models.Model):
+    """浏览历史模型"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='view_history', verbose_name="用户")
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='viewed_by', verbose_name="商品")
+    viewed_at = models.DateTimeField(auto_now_add=True, verbose_name="浏览时间")
+
+    class Meta:
+        db_table = 'view_history'
+        verbose_name = '浏览历史'
+        verbose_name_plural = '浏览历史'
+        ordering = ['-viewed_at']

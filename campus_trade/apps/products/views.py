@@ -156,18 +156,9 @@ class ProductViewSet(viewsets.ModelViewSet):
             
             serializer = self.get_serializer(product, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
-                if original_status == 'available':
-                    product.status = 'pending'
-                    product.save(update_fields=['status'])
-                
+                # 修改商品后保持上架状态，无需重新审核
                 serializer.save()
                 
-                if original_status == 'available':
-                    return Response({
-                        'code': 200,
-                        'message': '修改成功，商品需要重新审核后才能上架',
-                        'data': serializer.data
-                    })
                 return Response({
                     'code': 200,
                     'message': '修改成功',

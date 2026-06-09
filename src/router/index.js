@@ -72,6 +72,11 @@ const routes = [
     path: '/my/favorites',
     name: 'MyFavorites',
     component: () => import('../views/product/MyFavorites.vue')
+  },
+  {
+    path: '/my/footprint',
+    name: 'MyFootprint',
+    component: () => import('../views/product/MyFootprint.vue')
   }
 ]
 

@@ -104,7 +104,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
         validated_data['seller'] = self.context['request'].user
 
-        validated_data['status'] = 'pending'
+        # 商品发布后直接上架，无需审核
+        validated_data['status'] = 'available'
 
         return super().create(validated_data)
 
