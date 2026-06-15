@@ -102,6 +102,34 @@ class ConversationViewSet(viewsets.ModelViewSet):
             'data': serializer.data
         })
 
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """获取用户所有未读消息的总数"""
+        try:
+            # 获取当前用户参与的所有会话
+            conversations = Conversation.objects.filter(participants=request.user)
+            
+            # 统计所有未读消息的数量（排除自己发送的消息）
+            unread_count = Message.objects.filter(
+                conversation__in=conversations
+            ).exclude(
+                sender=request.user
+            ).filter(
+                is_read=False
+            ).count()
+            
+            return Response({
+                'code': 200,
+                'message': '获取成功',
+                'data': {'unread_count': unread_count}
+            })
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'获取失败: {str(e)}',
+                'data': {'unread_count': 0}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def create(self, request, *args, **kwargs):
         print("=== 创建会话请求到达 ===")
         print(f"请求方法: {request.method}")

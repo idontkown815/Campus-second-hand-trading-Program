@@ -92,7 +92,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'conversation-created'])
+const emit = defineEmits(['update:modelValue', 'conversation-created', 'closed'])
 
 const visible = ref(false)
 const messages = ref([])
@@ -121,6 +121,9 @@ watch(() => props.modelValue, (val) => {
 
 watch(visible, (val) => {
   emit('update:modelValue', val)
+  if (!val) {
+    emit('closed')
+  }
 })
 
 const loadMessages = async () => {

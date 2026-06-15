@@ -139,7 +139,7 @@ export default {
     return api.post('/communications/messages/mark_read/', { conversation_id: conversationId })
   },
   getUnreadCount() {
-    return api.get('/communications/messages/unread_count/')
+    return api.get('/communications/conversations/unread_count/')
   },
   getTransactions() {
     return api.get('/transactions/')
