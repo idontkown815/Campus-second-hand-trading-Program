@@ -23,6 +23,7 @@ class Product(models.Model):
         ('available', '在售'),
         ('locked', '锁定中'),
         ('sold', '已售出'),
+        ('violation', '违规下架'),
         ('rejected', '已下架'),
     ]
 
@@ -30,7 +31,8 @@ class Product(models.Model):
     title = models.CharField(max_length=100, verbose_name="标题")
     description = models.TextField(max_length=2000, verbose_name="描述")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="价格")
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, verbose_name="分类")
+    stock = models.IntegerField(default=1, verbose_name="库存")
+    category = models.CharField(max_length=50, verbose_name="分类", default="其他")
     images = models.JSONField(default=list, verbose_name="图片列表")
     campus_location = models.CharField(max_length=100, verbose_name="校区位置")
     building_location = models.CharField(max_length=100, verbose_name="楼栋位置")
@@ -46,3 +48,39 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title
+
+    def check_and_update_lock_status(self):
+        """检查并更新商品锁定状态"""
+        from django.utils import timezone
+        from transactions.models import Transaction
+
+        # 如果商品已经是锁定状态，检查锁定是否过期
+        if self.status == 'locked':
+            active_lock = Transaction.objects.filter(
+                product=self,
+                status='pending'
+            ).filter(
+                locked_until__gt=timezone.now()
+            ).exists()
+
+            if not active_lock:
+                # 锁定过期，商品恢复为在售
+                self.status = 'available'
+                self.save(update_fields=['status', 'updated_at'])
+                return False
+            return True
+
+        # 检查是否有有效的锁定交易
+        active_lock = Transaction.objects.filter(
+            product=self,
+            status='pending'
+        ).filter(
+            locked_until__gt=timezone.now()
+        ).exists()
+
+        if active_lock:
+            self.status = 'locked'
+            self.save(update_fields=['status', 'updated_at'])
+            return True
+
+        return False

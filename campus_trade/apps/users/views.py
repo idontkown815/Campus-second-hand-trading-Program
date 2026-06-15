@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import models
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserSerializer
 
 User = get_user_model()
@@ -67,21 +68,29 @@ class LoginView(APIView):
             except User.DoesNotExist:
                 return Response({
                     'code': 401,
-                    'message': '学号或密码错误'
+                    'message': '该学号尚未注册'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             if not user.check_password(password):
                 return Response({
                     'code': 401,
-                    'message': '学号或密码错误'
+                    'message': '密码错误，请重新输入'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            # 检查用户是否被禁用（超级管理员不受此限制）
+            if not user.is_active and not user.is_superuser:
+                return Response({
+                    'code': 401,
+                    'message': '您的账号已被禁用，请联系管理员'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             refresh = RefreshToken.for_user(user)
+            is_admin = user.is_superuser
             return Response({
                 'code': 200,
                 'message': '登录成功',
                 'data': {
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
-                    'user': UserSerializer(user).data
+                    'user': UserSerializer(user).data,
+                    'is_admin': is_admin
                 }
             })
         return Response({
@@ -118,3 +127,124 @@ class ProfileView(APIView):
             'message': '更新失败',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserListView(APIView):
+    """用户列表视图（仅管理员可访问）"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 支持搜索
+        search_query = request.query_params.get('search', '')
+        # 排除超级管理员，主管理员不属于用户管理范畴
+        users = User.objects.filter(is_superuser=False)
+        
+        if search_query:
+            users = users.filter(
+                models.Q(name__icontains=search_query) |
+                models.Q(student_id__icontains=search_query) |
+                models.Q(major__icontains=search_query)
+            )
+        
+        return Response({
+            'code': 200,
+            'message': '获取成功',
+            'data': UserSerializer(users, many=True).data
+        })
+
+
+class UserDetailView(APIView):
+    """用户详情视图（仅管理员可访问）"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            return Response({
+                'code': 200,
+                'message': '获取成功',
+                'data': UserSerializer(user).data
+            })
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, user_id):
+        """更新用户信息（仅管理员）"""
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            # 禁止修改超级管理员账号
+            if user.is_superuser:
+                return Response({
+                    'code': 403,
+                    'message': '禁止修改超级管理员账号'
+                }, status=status.HTTP_403_FORBIDDEN)
+            # 允许管理员更新用户信息和权限
+            serializer = UserSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    'code': 200,
+                    'message': '更新成功',
+                    'data': serializer.data
+                })
+            return Response({
+                'code': 400,
+                'message': '更新失败',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, user_id):
+        """删除用户（仅管理员）"""
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '权限不足，仅管理员可访问'
+            }, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+            # 禁止删除超级管理员账号
+            if user.is_superuser:
+                return Response({
+                    'code': 403,
+                    'message': '禁止删除超级管理员账号'
+                }, status=status.HTTP_403_FORBIDDEN)
+            # 不允许删除自己
+            if user.id == request.user.id:
+                return Response({
+                    'code': 400,
+                    'message': '不能删除自己的账号'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            user.delete()
+            return Response({
+                'code': 200,
+                'message': '删除成功'
+            })
+        except User.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)

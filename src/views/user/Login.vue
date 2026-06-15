@@ -19,6 +19,7 @@
         </el-form-item>
         <el-form-item>
           <el-link type="primary" @click="$router.push('/register')">没有账号？去注册</el-link>
+          <el-link type="warning" @click="$router.push('/admin/login')" style="margin-left: 20px;">管理员登录</el-link>
         </el-form-item>
       </el-form>
     </el-card>
@@ -42,7 +43,7 @@ const form = ref({
 const rules = {
   student_id: [
     { required: true, message: '请输入学号', trigger: 'blur' },
-    { len: 8, message: '学号必须为8位', trigger: 'blur' }
+    { min: 8, max: 8, message: '学号必须为8位', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' }
@@ -58,12 +59,22 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    await userStore.login(form.value.student_id, form.value.password)
+    const response = await userStore.login(form.value.student_id, form.value.password)
+    const isAdmin = response.data?.is_admin
+
+    if (isAdmin) {
+      ElMessage.error('管理员请从管理员入口登录')
+      userStore.logout()
+      router.push('/admin/login')
+      return
+    }
+
     ElMessage.success('登录成功')
     router.push('/')
   } catch (error) {
     console.error(error)
-    ElMessage.error('学号或密码错误，请检查后重试')
+    const errorMessage = error.response?.data?.message || '登录失败，请检查后重试'
+    ElMessage.error(errorMessage)
   } finally {
     loading.value = false
   }
@@ -76,11 +87,15 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: url('/uploads/materials/background.jpg') no-repeat center center fixed;
+  background-size: cover;
 }
 
 .login-card {
   width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .login-card h2 {

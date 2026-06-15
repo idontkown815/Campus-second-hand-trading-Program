@@ -7,5 +7,4 @@ router.register(r'', TransactionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('<int:pk>/confirm/', TransactionViewSet.as_view({'put': 'confirm_transaction'}), name='confirm_transaction'),
 ]

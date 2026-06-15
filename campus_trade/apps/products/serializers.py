@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Category, Product
+from django.conf import settings
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -12,17 +13,105 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     """商品序列化器"""
     seller = serializers.StringRelatedField()
-    category = serializers.StringRelatedField()
+    seller_id = serializers.IntegerField(source='seller.id', read_only=True)
+    images = serializers.SerializerMethodField()
+    image_list = serializers.ListField(
+        child=serializers.CharField(),
+        write_only=True,
+        required=False
+    )
+    transaction_status = serializers.SerializerMethodField()
+    buyer_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'seller', 'title', 'description', 'price', 'category',
-            'images', 'campus_location', 'building_location', 'status',
-            'created_at', 'updated_at'
+            'id', 'seller', 'seller_id', 'title', 'description', 'price', 'stock', 'category',
+            'images', 'image_list', 'campus_location', 'building_location', 'status',
+            'created_at', 'updated_at', 'transaction_status', 'buyer_id'
         ]
 
+    def get_images(self, obj):
+        """获取图片完整URL"""
+        if not obj.images:
+            return []
+
+        import json
+        import urllib.parse
+        images = []
+        
+        # 尝试解析 JSON 字符串
+        if isinstance(obj.images, str):
+            try:
+                images = json.loads(obj.images)
+            except json.JSONDecodeError:
+                # 如果不是有效的 JSON，则按逗号分割
+                images = obj.images.split(',')
+        else:
+            images = obj.images
+        
+        full_images = []
+        request = self.context.get('request')
+        for img in images:
+            if isinstance(img, str):
+                img = img.strip()
+                if img:
+                    # 对URL编码的路径进行解码
+                    img = urllib.parse.unquote(img)
+                    # 图片存储在 /uploads/商品/ 目录下
+                    img_path = img
+                    # 如果路径不包含 商品/ 前缀，则添加
+                    if not img_path.startswith('商品/'):
+                        img_path = '商品/' + img_path
+                    # 如果有request对象，构建完整的绝对URL
+                    if request:
+                        full_url = request.build_absolute_uri('/uploads/' + img_path)
+                    else:
+                        full_url = '/uploads/' + img_path
+                    full_images.append(full_url)
+        return full_images
+
+    def get_transaction_status(self, obj):
+        """获取交易状态用于显示"""
+        from apps.transactions.models import Transaction
+        try:
+            transaction = Transaction.objects.filter(product=obj).exclude(
+                status__in=['cancelled', 'expired']
+            ).select_related('buyer', 'seller').first()
+            if transaction:
+                return transaction.status
+        except Exception:
+            pass
+        return None
+
+    def get_buyer_id(self, obj):
+        """获取买家ID"""
+        from apps.transactions.models import Transaction
+        try:
+            transaction = Transaction.objects.filter(product=obj).exclude(
+                status__in=['cancelled', 'expired']
+            ).select_related('buyer').first()
+            if transaction:
+                return transaction.buyer.id
+        except Exception:
+            pass
+        return None
+
     def create(self, validated_data):
-        # 设置卖家为当前用户
+        image_list = validated_data.pop('image_list', [])
+        if image_list:
+            validated_data['images'] = image_list
+
         validated_data['seller'] = self.context['request'].user
+
+        # 商品发布后直接上架，无需审核
+        validated_data['status'] = 'available'
+
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        image_list = validated_data.pop('image_list', None)
+        if image_list is not None:
+            instance.images = image_list
+
+        return super().update(instance, validated_data)
