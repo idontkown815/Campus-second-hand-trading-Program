@@ -70,7 +70,7 @@
                   立即购买
                 </el-button>
               </template>
-              <template v-else-if="product.status === 'locked'">
+              <template v-else-if="product.status === 'locked' && !(currentTransaction && currentTransaction.status === 'pending')">
                 <div class="lock-info">
                   <el-alert type="warning" :closable="false">
                     <template #title>
@@ -84,7 +84,6 @@
                 <el-alert type="info" :closable="false" title="该商品已售出"></el-alert>
               </template>
               <template v-if="currentTransaction && currentTransaction.status === 'pending'">
-                <el-divider></el-divider>
                 <div class="transaction-panel">
                   <h4>您的购买意向</h4>
                   <el-alert type="warning" :closable="false">
@@ -274,7 +273,7 @@ const handleBuy = async () => {
   try {
     const response = await api.createTransaction(product.value.id)
     if (response.data.code === 200) {
-      ElMessage.success('购买意向已创建，请在3小时内完成付款')
+      ElMessage.success('购买意向已创建，请在2小时内完成付款')
       currentTransaction.value = response.data.data
       product.value.status = 'locked'
       startLockTimer()

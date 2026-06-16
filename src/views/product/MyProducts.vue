@@ -29,7 +29,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="发布时间" width="180" />
-          <el-table-column label="操作" width="200">
+          <el-table-column label="操作" width="250">
             <template #default="scope">
               <template v-if="canOperate(scope.row)">
                 <el-button type="primary" size="small" @click="editProduct(scope.row.id)">
@@ -41,6 +41,14 @@
                 <el-button type="success" size="small" @click="putOnShelf(scope.row.id)" v-if="scope.row.status === 'rejected'">
                   上架
                 </el-button>
+              </template>
+              <template v-else-if="scope.row.status === 'locked'">
+                <el-button type="warning" size="small" @click="releaseLock(scope.row.id)">
+                  释放锁定
+                </el-button>
+                <span class="status-hint">
+                  {{ getStatusHint(scope.row) }}
+                </span>
               </template>
               <span v-else class="status-hint">
                 {{ getStatusHint(scope.row) }}
@@ -97,12 +105,13 @@ const getStatusText = (product) => {
   const txStatus = product.transaction_status
 
   if (status === 'available' && !txStatus) return '在售'
-  if (status === 'locked' && txStatus === 'pending') return '待付款'
+  if (status === 'locked' && txStatus === 'pending') return '锁定中'
+  if (status === 'locked') return '锁定中'
   if (status === 'sold' && txStatus === 'paid') return '待发货'
   if (status === 'sold' && txStatus === 'shipped') return '待收货'
   if (status === 'sold' && txStatus === 'arrived') return '已到货'
   if (status === 'sold' && txStatus === 'completed') return '已完成'
-  if (status === 'rejected') return '已下架'
+  if (status === 'rejected') return '审核未通过'
   if (status === 'violation') return '违规下架'
   if (status === 'pending') return '待审核'
 
@@ -124,7 +133,8 @@ const getStatusHint = (product) => {
   const status = product.status
   const txStatus = product.transaction_status
 
-  if (status === 'locked' && txStatus === 'pending') return '买家待付款'
+  if (status === 'locked' && txStatus === 'pending') return '买家待付款，可释放'
+  if (status === 'locked') return '商品已被锁定'
   if (status === 'sold' && txStatus === 'paid') return '待发货'
   if (status === 'sold' && txStatus === 'shipped') return '买家待收货'
   if (status === 'sold' && txStatus === 'arrived') return '买家待确认'
@@ -166,6 +176,20 @@ const putOnShelf = async (id) => {
   } catch (error) {
     console.error(error)
     ElMessage.error('上架失败')
+  }
+}
+
+const releaseLock = async (id) => {
+  try {
+    const response = await productStore.releaseLock(id)
+    console.log('releaseLock response:', response)
+    const message = response?.message || '商品锁定已释放'
+    ElMessage.success(message)
+    await loadMyProducts()
+  } catch (error) {
+    console.error('releaseLock error:', error)
+    const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || '释放锁定失败'
+    ElMessage.error(errorMsg)
   }
 }
 

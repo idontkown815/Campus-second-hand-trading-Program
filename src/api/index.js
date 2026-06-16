@@ -27,7 +27,7 @@ api.interceptors.response.use(
   error => {
     if (error.response) {
       const { status, data } = error.response
-      const message = data?.message || '请求失败'
+      const message = data?.message || data?.detail || '请求失败'
       if (status === 401) {
         // 获取当前是否为管理员
         const isAdmin = localStorage.getItem('is_admin') === 'true'
@@ -90,7 +90,7 @@ export default {
     return api.get('/products/', { params, skipAuth: true })
   },
   getProduct(id) {
-    return api.get(`/products/${id}/`, { skipAuth: true })
+    return api.get(`/products/${id}/`)
   },
   createProduct(data) {
     return api.post('/products/', data)
@@ -106,6 +106,9 @@ export default {
   },
   putOnShelf(id) {
     return api.post(`/products/${id}/put_on_shelf/`)
+  },
+  releaseLock(id) {
+    return api.post(`/products/${id}/release_lock/`)
   },
   updateProduct(id, data) {
     return api.put(`/products/${id}/`, data)
@@ -167,6 +170,9 @@ export default {
   },
   adminReleaseAll() {
     return api.post('/products/admin_release_all/')
+  },
+  adminReleaseProduct(id) {
+    return api.post(`/products/${id}/admin_release/`)
   },
   approveProduct(id) {
     return api.post(`/products/${id}/approve/`)

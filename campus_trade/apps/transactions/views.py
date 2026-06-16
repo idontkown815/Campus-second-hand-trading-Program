@@ -77,7 +77,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         existing_transaction = Transaction.objects.filter(
             product=product,
             status='pending',
-            locked_until__gt=datetime.now()
+            locked_until__gt=timezone.now()
         ).first()
 
         if existing_transaction:

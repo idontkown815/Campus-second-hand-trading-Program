@@ -67,6 +67,18 @@ class Product(models.Model):
                 # 锁定过期，商品恢复为在售
                 self.status = 'available'
                 self.save(update_fields=['status', 'updated_at'])
+                
+                # 将过期的交易状态更新为expired
+                expired_transactions = Transaction.objects.filter(
+                    product=self,
+                    status='pending'
+                ).filter(
+                    locked_until__lte=timezone.now()
+                )
+                for tx in expired_transactions:
+                    tx.status = 'expired'
+                    tx.save(update_fields=['status', 'updated_at'])
+                
                 return False
             return True
 
