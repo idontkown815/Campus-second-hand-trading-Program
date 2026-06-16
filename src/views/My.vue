@@ -88,6 +88,27 @@
       </div>
     </div>
 
+    <!-- 管理员功能区 -->
+    <div v-if="userStore.user?.is_superuser" class="admin-section">
+      <el-card class="admin-card">
+        <div class="admin-item">
+          <div class="admin-header">
+            <el-icon class="admin-icon"><Monitor /></el-icon>
+            <span class="admin-title">管理员功能</span>
+          </div>
+          <p class="admin-desc">释放所有被锁定的商品，并将待付款交易设为过期</p>
+        </div>
+        <el-button 
+          type="danger" 
+          @click="handleAdminReleaseAll"
+          :loading="adminLoading"
+          class="admin-btn">
+          <el-icon><Refresh /></el-icon>
+          一键释放锁定商品
+        </el-button>
+      </el-card>
+    </div>
+
     <div class="logout-section">
       <el-button v-if="userStore.isLoggedIn" type="danger" plain class="logout-btn" @click="handleLogout">
         退出登录
@@ -104,6 +125,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
+import api from '../api'
 import {
   Edit,
   ArrowRight,
@@ -117,11 +139,15 @@ import {
   Clock,
   Setting,
   QuestionFilled,
-  InfoFilled
+  InfoFilled,
+  Monitor,
+  Refresh
 } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
+const adminLoading = ref(false)
 
 const orderCounts = ref({
   pending_payment: 0,
@@ -132,20 +158,62 @@ const orderCounts = ref({
 
 const productCount = ref(0)
 
+const loadOrderCounts = async () => {
+  if (!userStore.isLoggedIn || !userStore.user) return
+  
+  try {
+    const response = await api.getTransactions()
+    const orders = response.data.data || []
+    
+    orderCounts.value = {
+      pending_payment: 0,
+      pending_shipment: 0,
+      pending_receipt: 0,
+      completed: 0
+    }
+    
+    const userId = userStore.user.id
+    
+    orders.forEach(order => {
+      const isBuyer = order.buyer_id === userId
+      const isSeller = order.seller_id === userId
+      
+      if (order.status === 'pending' && isBuyer) {
+        orderCounts.value.pending_payment++
+      } else if (order.status === 'paid' && isSeller) {
+        orderCounts.value.pending_shipment++
+      } else if (['shipped', 'arrived'].includes(order.status) && isBuyer) {
+        orderCounts.value.pending_receipt++
+      } else if (order.status === 'completed') {
+        orderCounts.value.completed++
+      }
+    })
+  } catch (error) {
+    console.error('加载订单计数失败:', error)
+  }
+}
+
 const goToProfile = () => {
   router.push('/profile')
 }
 
 const goToOrders = (type) => {
-  ElMessage.info('订单功能即将上线')
+  const tabMap = {
+    pending_payment: 'pending',
+    pending_shipment: 'paid',
+    pending_receipt: 'shipped',
+    completed: 'completed'
+  }
+  const tab = tabMap[type] || 'pending'
+  router.push({ path: '/orders', query: { tab } })
 }
 
 const goToMyProducts = () => {
-  ElMessage.info('我的发布功能即将上线')
+  router.push('/my/products')
 }
 
 const goToFavorites = () => {
-  ElMessage.info('我的收藏功能即将上线')
+  router.push('/my/favorites')
 }
 
 const goToFootprint = () => {
@@ -168,6 +236,36 @@ const goToLogin = () => {
   router.push('/login')
 }
 
+const handleAdminReleaseAll = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要释放所有被锁定的商品吗？\n此操作将：\n 1. 把所有锁定商品恢复为在售状态\n 2. 把所有待付款交易设为过期',
+      '确认操作',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    adminLoading.value = true
+    const response = await api.adminReleaseAll()
+    
+    if (response.data.code === 200) {
+      const data = response.data.data
+      ElMessage.success(
+        `释放成功！\n释放锁定商品: ${data.locked_released} 个\n过期待付款交易: ${data.pending_expired} 个`
+      )
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  } finally {
+    adminLoading.value = false
+  }
+}
+
 const handleLogout = () => {
   userStore.logout()
   ElMessage.success('已退出登录')
@@ -178,6 +276,7 @@ const fetchData = async () => {
   if (userStore.isLoggedIn) {
     try {
       await userStore.getProfile()
+      await loadOrderCounts()
     } catch (error) {
       console.error(error)
     }
@@ -328,7 +427,8 @@ onMounted(() => {
 .badge {
   position: absolute;
   top: -5px;
-  right: 10px;
+  right: 50%;
+  transform: translateX(20px);
 }
 
 .tool-section {
@@ -381,6 +481,52 @@ onMounted(() => {
   width: 100%;
   height: 44px;
   font-size: 16px;
+  border-radius: 22px;
+}
+
+.admin-section {
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.admin-card {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+  border: 2px solid #fde2e2;
+}
+
+.admin-item {
+  margin-bottom: 15px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.admin-icon {
+  font-size: 20px;
+  color: #f56c6c;
+}
+
+.admin-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.admin-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #999;
+  padding-left: 28px;
+}
+
+.admin-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 15px;
   border-radius: 22px;
 }
 </style>

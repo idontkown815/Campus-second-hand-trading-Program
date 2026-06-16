@@ -4,6 +4,11 @@
       <el-header class="header">
         <div class="header-content">
           <h1>校园二手交易平台</h1>
+          <div class="header-nav">
+            <el-button type="text" @click="$router.push('/')">首页</el-button>
+            <el-button type="text" @click="$router.push('/products')">商品</el-button>
+            <el-button type="text" @click="$router.push('/messages')" v-if="userStore.isLoggedIn">消息</el-button>
+          </div>
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
               <span>欢迎，{{ userStore.user?.name }}</span>
@@ -25,7 +30,12 @@
       </el-header>
       <el-main>
         <div class="product-section">
-          <h2>最新商品</h2>
+          <div class="section-header">
+            <h2>最新商品</h2>
+            <div class="section-actions">
+              <el-button type="primary" @click="goToPublish" v-if="userStore.isLoggedIn">发布商品</el-button>
+            </div>
+          </div>
           <el-row :gutter="20">
             <el-col :span="8" v-for="product in products" :key="product.id">
               <el-card class="product-card" @click="goToDetail(product.id)">
@@ -77,6 +87,12 @@ const goToMy = () => {
   router.push('/my')
 }
 
+const goToPublish = () => {
+  router.push('/product/publish')
+}
+
+
+
 onMounted(() => {
   loadProducts()
 })
@@ -97,6 +113,12 @@ onMounted(() => {
   padding: 0 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.header-nav {
+  display: flex;
+  gap: 20px;
+  margin: 0 20px;
 }
 
 .header-content h1 {
@@ -151,6 +173,18 @@ onMounted(() => {
 .product-section h2 {
   margin-bottom: 20px;
   color: #333;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .product-card {

@@ -68,3 +68,17 @@ class Block(models.Model):
         verbose_name = '拉黑'
         verbose_name_plural = '拉黑'
         unique_together = ('blocker', 'blocked')
+
+
+class Comment(models.Model):
+    """评论模型"""
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='comments', verbose_name="商品")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments', verbose_name="用户")
+    content = models.TextField(max_length=500, verbose_name="评论内容")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="评论时间")
+
+    class Meta:
+        db_table = 'comments'
+        verbose_name = '评论'
+        verbose_name_plural = '评论'
+        ordering = ['-created_at']
