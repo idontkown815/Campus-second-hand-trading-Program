@@ -88,7 +88,11 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
   
-  await userStore.init()
+  try {
+    await userStore.init()
+  } catch (error) {
+    console.error('初始化用户状态失败:', error)
+  }
 
   if (to.meta.requiresAdmin) {
     if (!userStore.isLoggedIn) {

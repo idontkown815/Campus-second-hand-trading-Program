@@ -35,6 +35,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Product.objects.filter(is_deleted=False)
 
+        # 自动释放过期锁定的商品
+        self.release_expired_locked_products()
+
         # 商品大厅只显示在售且库存大于0的商品
         queryset = queryset.filter(status='available', stock__gt=0)
 
@@ -141,10 +144,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         try:
-            # 使用不过滤状态的查询集，允许修改被拒绝的商品
-            queryset = Product.objects.filter(is_deleted=False)
-            product = queryset.get(pk=kwargs.get('pk'))
-            
+            product = self.get_object()
             if product.seller != request.user:
                 return Response({
                     'code': 403,
@@ -517,6 +517,22 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'pending_expired': transaction_updated
             }
         })
+
+    def release_expired_locked_products(self):
+        """自动释放所有过期锁定的商品"""
+        from django.utils import timezone
+        
+        expired_transactions = Transaction.objects.filter(
+            status='pending',
+            locked_until__lte=timezone.now()
+        ).select_related('product')
+
+        for transaction in expired_transactions:
+            if transaction.product and transaction.product.status == 'locked':
+                transaction.product.status = 'available'
+                transaction.product.save(update_fields=['status', 'updated_at'])
+            transaction.status = 'expired'
+            transaction.save(update_fields=['status', 'updated_at'])
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def admin_release(self, request, pk=None):

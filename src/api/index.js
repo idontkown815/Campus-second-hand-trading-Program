@@ -90,7 +90,7 @@ export default {
     return api.get('/products/', { params, skipAuth: true })
   },
   getProduct(id) {
-    return api.get(`/products/${id}/`)
+    return api.get(`/products/${id}/`, { skipAuth: true })
   },
   createProduct(data) {
     return api.post('/products/', data)

@@ -26,8 +26,13 @@ export const useUserStore = defineStore('user', {
         try {
           await this.getProfile()
         } catch (error) {
-          this.logout()
-          return
+          this.token = null
+          this.user = null
+          this.isLoggedIn = false
+          this.isAdmin = false
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('is_admin')
         }
       }
       
