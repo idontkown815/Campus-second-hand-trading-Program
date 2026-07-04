@@ -86,11 +86,7 @@
                     <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
                   </template>
                 </el-table-column>
-<<<<<<< HEAD
                 <el-table-column prop="seller_name" label="卖家" width="100" />
-=======
-                <el-table-column prop="seller" label="卖家" width="100" />
->>>>>>> 4fc1772c (修复管理员商品管理页面卖家列显)
                 <el-table-column prop="created_at" label="发布时间" width="180" />
                 <el-table-column label="操作" width="200">
                   <template #default="{ row }">
