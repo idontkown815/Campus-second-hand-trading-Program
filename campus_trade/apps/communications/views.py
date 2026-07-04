@@ -3,8 +3,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from .models import Conversation, Message, Favorite, Report, Block, Comment
-from .serializers import ConversationSerializer, MessageSerializer, FavoriteSerializer, ReportSerializer, BlockSerializer, CommentSerializer
+from .models import Conversation, Message, Favorite, Report, Block, Comment, ViewHistory
+from .serializers import ConversationSerializer, MessageSerializer, FavoriteSerializer, ReportSerializer, BlockSerializer, CommentSerializer, ViewHistorySerializer
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -101,6 +101,34 @@ class ConversationViewSet(viewsets.ModelViewSet):
             'message': '获取成功',
             'data': serializer.data
         })
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """获取用户所有未读消息的总数"""
+        try:
+            # 获取当前用户参与的所有会话
+            conversations = Conversation.objects.filter(participants=request.user)
+            
+            # 统计所有未读消息的数量（排除自己发送的消息）
+            unread_count = Message.objects.filter(
+                conversation__in=conversations
+            ).exclude(
+                sender=request.user
+            ).filter(
+                is_read=False
+            ).count()
+            
+            return Response({
+                'code': 200,
+                'message': '获取成功',
+                'data': {'unread_count': unread_count}
+            })
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'message': f'获取失败: {str(e)}',
+                'data': {'unread_count': 0}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request, *args, **kwargs):
         print("=== 创建会话请求到达 ===")
@@ -445,4 +473,105 @@ class BlockViewSet(viewsets.ModelViewSet):
             'code': 200,
             'message': '获取成功',
             'data': serializer.data
+        })
+
+
+class ViewHistoryViewSet(viewsets.ModelViewSet):
+    """浏览历史视图"""
+    queryset = ViewHistory.objects.all()
+    serializer_class = ViewHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        # 只返回当前用户的浏览历史，按浏览时间倒序
+        queryset = ViewHistory.objects.filter(user=request.user).order_by('-viewed_at')
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response({
+            'code': 200,
+            'message': '获取成功',
+            'data': serializer.data
+        })
+
+    def create(self, request, *args, **kwargs):
+        # 记录浏览历史
+        product_id = request.data.get('product_id')
+        
+        if not product_id:
+            return Response({
+                'code': 400,
+                'message': '请提供商品ID',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product_id = int(product_id)
+        except (ValueError, TypeError):
+            return Response({
+                'code': 400,
+                'message': '商品ID必须为整数',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.products.models import Product
+        try:
+            product = Product.objects.get(id=product_id, is_deleted=False)
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 如果用户已登录，记录浏览历史
+        if request.user.is_authenticated:
+            # 删除之前的浏览记录，避免重复
+            ViewHistory.objects.filter(user=request.user, product=product).delete()
+            
+            # 创建新的浏览记录
+            view_history = ViewHistory.objects.create(user=request.user, product=product)
+            serializer = self.get_serializer(view_history, context={'request': request})
+            return Response({
+                'code': 200,
+                'message': '记录成功',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'code': 200,
+            'message': '未登录，不记录浏览历史',
+            'data': None
+        })
+
+    def destroy(self, request, *args, **kwargs):
+        # 删除单条浏览记录
+        try:
+            view_history = self.get_object()
+            if view_history.user != request.user:
+                return Response({
+                    'code': 403,
+                    'message': '无权删除此记录',
+                    'data': None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            view_history.delete()
+            return Response({
+                'code': 200,
+                'message': '删除成功',
+                'data': None
+            })
+        except ViewHistory.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '记录不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    def clear(self, request):
+        """清空所有浏览历史"""
+        ViewHistory.objects.filter(user=request.user).delete()
+        return Response({
+            'code': 200,
+            'message': '清空成功',
+            'data': None
         })

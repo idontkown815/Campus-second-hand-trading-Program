@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\pbl6\Project\venv
+set VIRTUAL_ENV=d:\three2\PBL6\idontknow\Campus-second-hand-trading-Program\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

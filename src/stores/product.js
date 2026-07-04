@@ -48,6 +48,11 @@ export const useProductStore = defineStore('product', {
       return response.data
     },
 
+    async releaseLock(id) {
+      const response = await api.releaseLock(id)
+      return response.data
+    },
+
     async updateProduct(id, data) {
       const response = await api.updateProduct(id, data)
       return response.data

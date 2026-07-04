@@ -35,6 +35,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Product.objects.filter(is_deleted=False)
 
+        # 自动释放过期锁定的商品
+        self.release_expired_locked_products()
+
         # 商品大厅只显示在售且库存大于0的商品
         queryset = queryset.filter(status='available', stock__gt=0)
 
@@ -100,12 +103,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             is_buyer = instance.transactions.filter(buyer=request.user).exists()
             is_seller = instance.seller == request.user
         
-        if not (is_buyer or is_seller) and instance.status != 'available':
-            return Response({
-                'code': 403,
-                'message': '无权访问此商品',
-                'data': None
-            }, status=status.HTTP_403_FORBIDDEN)
+        # 卖家可以访问自己的所有商品（无论状态）
+        # 买家可以访问与自己有交易的商品
+        # 其他用户只能访问在售商品
+        if not is_seller:
+            if not is_buyer and instance.status != 'available':
+                return Response({
+                    'code': 403,
+                    'message': '无权访问此商品',
+                    'data': None
+                }, status=status.HTTP_403_FORBIDDEN)
         
         serializer = self.get_serializer(instance, context={'request': request})
         return Response({
@@ -125,7 +132,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response({
                 'code': 200,
-                'message': '发布成功',
+                'message': '商品已提交审核，请等待管理员审核通过后上架',
                 'data': serializer.data
             }, status=status.HTTP_201_CREATED)
         logger.error(f"序列化器验证失败，错误: {serializer.errors}")
@@ -145,10 +152,10 @@ class ProductViewSet(viewsets.ModelViewSet):
                     'data': None
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            if product.status not in ['pending', 'available']:
+            if product.status not in ['pending', 'available', 'rejected', 'violation']:
                 return Response({
                     'code': 400,
-                    'message': '只有待审核或在售的商品可以修改',
+                    'message': '只有待审核、在售、已拒绝或违规下架的商品可以修改',
                     'data': None
                 }, status=status.HTTP_400_BAD_REQUEST)
             
@@ -156,18 +163,19 @@ class ProductViewSet(viewsets.ModelViewSet):
             
             serializer = self.get_serializer(product, data=request.data, partial=True, context={'request': request})
             if serializer.is_valid():
-                if original_status == 'available':
+                product = serializer.save()
+                
+                # 如果商品之前是被拒绝或违规下架的，修改后重新提交审核
+                if original_status in ['rejected', 'violation']:
                     product.status = 'pending'
-                    product.save(update_fields=['status'])
-                
-                serializer.save()
-                
-                if original_status == 'available':
+                    product.save()
                     return Response({
                         'code': 200,
-                        'message': '修改成功，商品需要重新审核后才能上架',
+                        'message': '修改成功，商品已重新提交审核',
                         'data': serializer.data
                     })
+                
+                # 修改商品后保持上架状态，无需重新审核
                 return Response({
                     'code': 200,
                     'message': '修改成功',
@@ -286,6 +294,48 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response({
                 'code': 200,
                 'message': '商品已提交审核，请等待管理员审核通过后上架',
+                'data': None
+            })
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def release_lock(self, request, pk=None):
+        """卖家释放被锁定的商品"""
+        try:
+            product = Product.objects.get(pk=pk, is_deleted=False)
+            if product.seller != request.user:
+                return Response({
+                    'code': 403,
+                    'message': '无权操作此商品',
+                    'data': None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            if product.status != 'locked':
+                return Response({
+                    'code': 400,
+                    'message': '只有锁定中的商品可以释放',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            product.status = 'available'
+            product.save()
+            
+            transaction = Transaction.objects.filter(
+                product=product,
+                status='pending'
+            ).first()
+            if transaction:
+                transaction.status = 'cancelled'
+                transaction.save()
+            
+            return Response({
+                'code': 200,
+                'message': '商品锁定已释放，恢复为在售状态',
                 'data': None
             })
         except Product.DoesNotExist:
@@ -467,3 +517,63 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'pending_expired': transaction_updated
             }
         })
+
+    def release_expired_locked_products(self):
+        """自动释放所有过期锁定的商品"""
+        from django.utils import timezone
+        
+        expired_transactions = Transaction.objects.filter(
+            status='pending',
+            locked_until__lte=timezone.now()
+        ).select_related('product')
+
+        for transaction in expired_transactions:
+            if transaction.product and transaction.product.status == 'locked':
+                transaction.product.status = 'available'
+                transaction.product.save(update_fields=['status', 'updated_at'])
+            transaction.status = 'expired'
+            transaction.save(update_fields=['status', 'updated_at'])
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def admin_release(self, request, pk=None):
+        """管理员：释放单个被锁定的商品"""
+        if not request.user.is_superuser:
+            return Response({
+                'code': 403,
+                'message': '只有管理员可以执行此操作',
+                'data': None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            product = Product.objects.get(pk=pk, is_deleted=False)
+            
+            if product.status != 'locked':
+                return Response({
+                    'code': 400,
+                    'message': '只有锁定中的商品可以释放',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            product.status = 'available'
+            product.save()
+            
+            from apps.transactions.models import Transaction
+            transaction = Transaction.objects.filter(
+                product=product,
+                status='pending'
+            ).first()
+            if transaction:
+                transaction.status = 'expired'
+                transaction.save()
+            
+            return Response({
+                'code': 200,
+                'message': '商品锁定已释放',
+                'data': None
+            })
+        except Product.DoesNotExist:
+            return Response({
+                'code': 404,
+                'message': '商品不存在',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)

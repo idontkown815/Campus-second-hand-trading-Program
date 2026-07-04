@@ -66,32 +66,153 @@
           </div>
 
           <div v-if="activeMenu === 'products'" class="products-content">
-            <el-card>
+            <!-- 统计卡片 -->
+            <el-row :gutter="20" style="margin-bottom: 20px">
+              <el-col :span="6">
+                <el-card class="stat-card products-stat" shadow="hover">
+                  <div class="stat-content">
+                    <div class="stat-icon available">
+                      <el-icon><Goods /></el-icon>
+                    </div>
+                    <div class="stat-info">
+                      <div class="stat-value">{{ productStats.available }}</div>
+                      <div class="stat-label">在售商品</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card class="stat-card products-stat" shadow="hover">
+                  <div class="stat-content">
+                    <div class="stat-icon pending">
+                      <el-icon><Clock /></el-icon>
+                    </div>
+                    <div class="stat-info">
+                      <div class="stat-value">{{ productStats.pending }}</div>
+                      <div class="stat-label">待审核商品</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card class="stat-card products-stat" shadow="hover">
+                  <div class="stat-content">
+                    <div class="stat-icon locked">
+                      <el-icon><Lock /></el-icon>
+                    </div>
+                    <div class="stat-info">
+                      <div class="stat-value">{{ productStats.locked }}</div>
+                      <div class="stat-label">锁定中商品</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card class="stat-card products-stat" shadow="hover">
+                  <div class="stat-content">
+                    <div class="stat-icon sold">
+                      <el-icon><SoldOut /></el-icon>
+                    </div>
+                    <div class="stat-info">
+                      <div class="stat-value">{{ productStats.sold }}</div>
+                      <div class="stat-label">已售出商品</div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <!-- 商品列表 -->
+            <el-card class="products-list-card">
               <template #header>
                 <div class="card-header">
-                  <span>商品列表</span>
-                  <el-button type="primary" @click="loadProducts">刷新</el-button>
+                  <div class="header-left">
+                    <el-icon class="header-icon"><Goods /></el-icon>
+                    <span class="header-title">商品管理</span>
+                    <el-tag type="info" size="small">共 {{ products.length }} 件商品</el-tag>
+                  </div>
+                  <div class="card-actions">
+                    <el-select v-model="statusFilter" placeholder="筛选状态" style="width: 120px; margin-right: 10px" clearable>
+                      <el-option label="全部" value="" />
+                      <el-option label="在售" value="available" />
+                      <el-option label="待审核" value="pending" />
+                      <el-option label="锁定中" value="locked" />
+                      <el-option label="已售出" value="sold" />
+                    </el-select>
+                    <el-button type="warning" @click="handleReleaseAll" :disabled="productStats.locked === 0">
+                      <el-icon><Lock /></el-icon>
+                      一键释放 ({{ productStats.locked }})
+                    </el-button>
+                    <el-button type="primary" @click="loadProducts">
+                      <el-icon><Refresh /></el-icon>
+                      刷新
+                    </el-button>
+                  </div>
                 </div>
               </template>
-              <el-table :data="products" style="width: 100%">
-                <el-table-column prop="id" label="ID" width="60" />
-                <el-table-column prop="title" label="商品名称" min-width="150">
+              <el-table :data="filteredProducts" style="width: 100%" v-loading="loading" stripe>
+                <el-table-column prop="id" label="ID" width="70" align="center" />
+                <el-table-column prop="title" label="商品信息" min-width="200">
                   <template #default="{ row }">
-                    <el-link type="primary" @click="handleViewProduct(row)">{{ row.title }}</el-link>
+                    <div class="product-info-cell">
+                      <div class="product-title">{{ row.title }}</div>
+                      <div class="product-price">¥{{ row.price }}</div>
+                    </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="price" label="价格" width="100" />
-                <el-table-column prop="status" label="状态" width="100">
+                <el-table-column prop="status" label="状态" width="110" align="center">
                   <template #default="{ row }">
-                    <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+                    <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="seller_name" label="卖家" width="100" />
-                <el-table-column prop="created_at" label="发布时间" width="180" />
-                <el-table-column label="操作" width="200">
+                <el-table-column prop="seller_name" label="卖家" width="120" align="center">
                   <template #default="{ row }">
-                    <el-button size="small" type="danger" @click="handleProductAction(row, 'remove')">违规下架</el-button>
-                    <el-button size="small" type="success" @click="handleProductAction(row, 'approve')">审核通过</el-button>
+                    <el-tag type="info" size="small">{{ row.seller_name || '未知' }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="category" label="分类" width="100" align="center">
+                  <template #default="{ row }">
+                    <span class="category-text">{{ row.category || '未分类' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="created_at" label="发布时间" width="170" align="center">
+                  <template #default="{ row }">
+                    <span class="time-text">{{ formatDate(row.created_at) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="280" align="center">
+                  <template #default="{ row }">
+                    <div class="action-buttons">
+                      <el-button size="small" type="primary" plain @click="handleViewProduct(row)">
+                        <el-icon><View /></el-icon>
+                        查看
+                      </el-button>
+                      <el-dropdown @command="(cmd) => handleProductCommand(row, cmd)" v-if="row.status === 'pending'">
+                        <el-button size="small" type="success">
+                          审核 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                        </el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item command="approve">
+                              <el-icon><Check /></el-icon>
+                              通过审核
+                            </el-dropdown-item>
+                            <el-dropdown-item command="reject">
+                              <el-icon><Close /></el-icon>
+                              拒绝通过
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                      <el-button size="small" type="warning" v-if="row.status === 'locked'" @click="handleReleaseProduct(row)">
+                        <el-icon><Unlock /></el-icon>
+                        释放锁定
+                      </el-button>
+                      <el-button size="small" type="danger" plain v-if="row.status === 'available' || row.status === 'pending'" @click="handleProductAction(row, 'remove')">
+                        <el-icon><Delete /></el-icon>
+                        下架
+                      </el-button>
+                    </div>
                   </template>
                 </el-table-column>
               </el-table>
@@ -280,11 +401,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import api from '../../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Goods, Clock, Lock, Unlock, Refresh, View, Check, Close,
+  Delete, ArrowDown, SoldOut
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -297,6 +422,26 @@ const stats = ref({
   totalProducts: 0,
   pendingProducts: 0,
   totalTransactions: 0
+})
+const statusFilter = ref('')
+const loading = ref(false)
+
+// 商品统计
+const productStats = computed(() => {
+  return {
+    available: products.value.filter(p => p.status === 'available').length,
+    pending: products.value.filter(p => p.status === 'pending').length,
+    locked: products.value.filter(p => p.status === 'locked').length,
+    sold: products.value.filter(p => p.status === 'sold').length
+  }
+})
+
+// 筛选后的商品
+const filteredProducts = computed(() => {
+  if (!statusFilter.value) {
+    return products.value
+  }
+  return products.value.filter(p => p.status === statusFilter.value)
 })
 const searchKeyword = ref('')
 const editDialogVisible = ref(false)
@@ -338,12 +483,15 @@ const loadStats = async () => {
 }
 
 const loadProducts = async () => {
+  loading.value = true
   try {
     const response = await api.getAdminProducts()
     products.value = response.data.data || []
   } catch (error) {
     console.error(error)
     ElMessage.error('获取商品列表失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -487,6 +635,62 @@ const handleProductAction = async (product, action) => {
     if (error !== 'cancel') {
       console.error(error)
       ElMessage.error('操作失败')
+    }
+  }
+}
+
+const handleProductCommand = async (product, command) => {
+  try {
+    if (command === 'approve') {
+      await api.approveProduct(product.id)
+      ElMessage.success('商品已审核通过')
+      loadProducts()
+      loadStats()
+    } else if (command === 'reject') {
+      await api.rejectProduct(product.id)
+      ElMessage.success('已拒绝该商品')
+      loadProducts()
+      loadStats()
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('操作失败')
+  }
+}
+
+const handleReleaseAll = async () => {
+  try {
+    await ElMessageBox.confirm('确定要释放所有被锁定的商品吗？此操作将恢复所有锁定商品为在售状态，并取消相关待付款交易。', '提示', {
+      confirmButtonText: '确定释放',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const response = await api.adminReleaseAll()
+    const data = response.data.data
+    ElMessage.success(`释放成功！共释放 ${data.locked_released} 个锁定商品，取消 ${data.pending_expired} 个待付款交易`)
+    loadProducts()
+    loadStats()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('一键释放失败:', error)
+    }
+  }
+}
+
+const handleReleaseProduct = async (product) => {
+  try {
+    await ElMessageBox.confirm(`确定要释放商品「${product.title}」的锁定状态吗？`, '提示', {
+      confirmButtonText: '确定释放',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const response = await api.adminReleaseProduct(product.id)
+    ElMessage.success(response.data.message || '商品锁定已释放')
+    loadProducts()
+    loadStats()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('释放锁定失败:', error)
     }
   }
 }
@@ -666,5 +870,149 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+/* 商品管理样式 */
+.products-content {
+  padding: 0;
+}
+
+.products-stat {
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.products-stat:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 5px 0;
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.stat-icon.available {
+  background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
+  color: white;
+}
+
+.stat-icon.pending {
+  background: linear-gradient(135deg, #e6a23c 0%, #f3d19e 100%);
+  color: white;
+}
+
+.stat-icon.locked {
+  background: linear-gradient(135deg, #909399 0%, #c0c4cc 100%);
+  color: white;
+}
+
+.stat-icon.sold {
+  background: linear-gradient(135deg, #409eff 0%, #79bbff 100%);
+  color: white;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.products-list-card {
+  border-radius: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  font-size: 20px;
+  color: #409eff;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+}
+
+.product-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-title {
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.4;
+}
+
+.product-price {
+  color: #f56c6c;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.category-text {
+  color: #606266;
+  font-size: 14px;
+}
+
+.time-text {
+  color: #909399;
+  font-size: 13px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
+  padding: 8px 12px;
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: #fafafa;
+}
+
+:deep(.el-dropdown-menu__item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

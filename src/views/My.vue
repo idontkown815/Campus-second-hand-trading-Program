@@ -52,6 +52,12 @@
         <span>个人资料</span>
         <el-icon class="arrow"><ArrowRight /></el-icon>
       </div>
+      <div class="tool-item" @click="goToMessages">
+        <el-icon class="tool-icon"><ChatDotRound /></el-icon>
+        <span>消息通知</span>
+        <el-badge :value="messageUnreadCount" :hidden="messageUnreadCount === 0" class="badge" type="danger" />
+        <el-icon class="arrow"><ArrowRight /></el-icon>
+      </div>
       <div class="tool-item" @click="goToMyProducts">
         <el-icon class="tool-icon"><Goods /></el-icon>
         <span>我的发布</span>
@@ -141,7 +147,8 @@ import {
   QuestionFilled,
   InfoFilled,
   Monitor,
-  Refresh
+  Refresh,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
@@ -157,6 +164,20 @@ const orderCounts = ref({
 })
 
 const productCount = ref(0)
+const messageUnreadCount = ref(0)
+
+const loadMessageUnreadCount = async () => {
+  if (!userStore.isLoggedIn || !userStore.user) return
+  
+  try {
+    const response = await api.getUnreadCount()
+    if (response.data.code === 200) {
+      messageUnreadCount.value = response.data.data.unread_count
+    }
+  } catch (error) {
+    console.error('加载未读消息数失败:', error)
+  }
+}
 
 const loadOrderCounts = async () => {
   if (!userStore.isLoggedIn || !userStore.user) return
@@ -197,6 +218,10 @@ const goToProfile = () => {
   router.push('/profile')
 }
 
+const goToMessages = () => {
+  router.push('/messages')
+}
+
 const goToOrders = (type) => {
   const tabMap = {
     pending_payment: 'pending',
@@ -217,7 +242,7 @@ const goToFavorites = () => {
 }
 
 const goToFootprint = () => {
-  ElMessage.info('我的足迹功能即将上线')
+  router.push('/my/footprint')
 }
 
 const goToSettings = () => {
@@ -277,6 +302,7 @@ const fetchData = async () => {
     try {
       await userStore.getProfile()
       await loadOrderCounts()
+      await loadMessageUnreadCount()
     } catch (error) {
       console.error(error)
     }

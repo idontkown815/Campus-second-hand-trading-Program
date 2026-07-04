@@ -27,7 +27,7 @@ api.interceptors.response.use(
   error => {
     if (error.response) {
       const { status, data } = error.response
-      const message = data?.message || '请求失败'
+      const message = data?.message || data?.detail || '请求失败'
       if (status === 401) {
         // 获取当前是否为管理员
         const isAdmin = localStorage.getItem('is_admin') === 'true'
@@ -107,6 +107,9 @@ export default {
   putOnShelf(id) {
     return api.post(`/products/${id}/put_on_shelf/`)
   },
+  releaseLock(id) {
+    return api.post(`/products/${id}/release_lock/`)
+  },
   updateProduct(id, data) {
     return api.put(`/products/${id}/`, data)
   },
@@ -139,7 +142,7 @@ export default {
     return api.post('/communications/messages/mark_read/', { conversation_id: conversationId })
   },
   getUnreadCount() {
-    return api.get('/communications/messages/unread_count/')
+    return api.get('/communications/conversations/unread_count/')
   },
   getTransactions() {
     return api.get('/transactions/')
@@ -168,6 +171,9 @@ export default {
   adminReleaseAll() {
     return api.post('/products/admin_release_all/')
   },
+  adminReleaseProduct(id) {
+    return api.post(`/products/${id}/admin_release/`)
+  },
   approveProduct(id) {
     return api.post(`/products/${id}/approve/`)
   },
@@ -195,5 +201,18 @@ export default {
   },
   checkFavorite(productId) {
     return api.get('/communications/favorites/check/', { params: { product_id: productId } })
+  },
+  // 浏览历史相关API
+  getViewHistory() {
+    return api.get('/communications/view_history/')
+  },
+  addViewHistory(productId) {
+    return api.post('/communications/view_history/', { product_id: productId })
+  },
+  deleteViewHistory(id) {
+    return api.delete(`/communications/view_history/${id}/`)
+  },
+  clearViewHistory() {
+    return api.delete('/communications/view_history/clear/')
   }
 }

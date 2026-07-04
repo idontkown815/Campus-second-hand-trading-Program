@@ -7,6 +7,7 @@
           <div class="header-nav">
             <el-button type="text" @click="$router.push('/')">首页</el-button>
             <el-button type="text" @click="$router.push('/products')">商品</el-button>
+            <el-button type="text" @click="$router.push('/messages')" v-if="userStore.isLoggedIn">消息</el-button>
           </div>
           <div class="header-actions">
             <template v-if="userStore.isLoggedIn">
@@ -29,7 +30,13 @@
       </el-header>
       <el-main>
         <div class="chat-list-section">
-          <h2>我的消息</h2>
+          <div class="section-title-row">
+            <h2>我的消息</h2>
+            <div class="unread-info" v-if="totalUnreadCount > 0">
+              <el-badge :value="totalUnreadCount" type="danger" />
+              <span class="unread-text">条未读消息</span>
+            </div>
+          </div>
           <div v-if="loading" class="loading-container">
             <el-icon class="is-loading"><Loading /></el-icon>
             加载中...
@@ -53,14 +60,16 @@
                 </div>
                 <div class="conversation-info">
                   <div class="product-title">{{ conv.product_title || '商品' }}</div>
-                  <div class="last-message">{{ conv.last_message_content || '暂无消息' }}</div>
+                  <div class="last-message" :class="{ 'unread': conv.unread_count > 0 }">
+                    {{ conv.last_message_content || '暂无消息' }}
+                  </div>
                   <div class="conversation-meta">
                     <span class="participants">{{ conv.other_participant }}</span>
                     <span class="time">{{ formatTime(conv.updated_at) }}</span>
                   </div>
                 </div>
-                <div class="unread-badge" v-if="conv.unread_count > 0">
-                  {{ conv.unread_count > 99 ? '99+' : conv.unread_count }}
+                <div v-if="conv.unread_count > 0" class="conversation-unread">
+                  <el-badge :value="conv.unread_count > 99 ? '99+' : conv.unread_count" type="danger" />
                 </div>
               </div>
             </el-card>
@@ -75,6 +84,7 @@
       :product="currentProduct"
       :seller-id="currentSellerId"
       :seller-name="currentSellerName"
+      @closed="refreshUnreadCount"
     />
   </div>
 </template>
@@ -93,11 +103,32 @@ const userStore = useUserStore()
 
 const conversations = ref([])
 const loading = ref(false)
+const totalUnreadCount = ref(0)
 const chatWindowVisible = ref(false)
 const currentConversationId = ref(null)
 const currentProduct = ref(null)
 const currentSellerId = ref(null)
 const currentSellerName = ref('')
+
+const loadUnreadCount = async () => {
+  if (!userStore.isLoggedIn) return
+  
+  try {
+    const response = await api.getUnreadCount()
+    if (response.data.code === 200) {
+      totalUnreadCount.value = response.data.data.unread_count
+      console.log('未读消息数:', totalUnreadCount.value)
+    }
+  } catch (error) {
+    console.error('加载未读消息数失败:', error)
+  }
+}
+
+// 刷新未读消息数（在查看消息后调用）
+const refreshUnreadCount = () => {
+  loadUnreadCount()
+  loadConversations()
+}
 
 const loadConversations = async () => {
   if (!userStore.isLoggedIn) {
@@ -169,6 +200,7 @@ const handleLogout = () => {
 
 onMounted(() => {
   loadConversations()
+  loadUnreadCount()
 })
 </script>
 
@@ -249,6 +281,37 @@ onMounted(() => {
   color: #333;
 }
 
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.section-title-row h2 {
+  margin-bottom: 0;
+}
+
+.unread-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #fef0f0;
+  border-radius: 20px;
+  border: 1px solid #fde2e2;
+}
+
+.unread-text {
+  font-size: 14px;
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.unread-badge {
+  font-size: 14px;
+}
+
 .loading-container, .empty-container {
   display: flex;
   justify-content: center;
@@ -276,6 +339,18 @@ onMounted(() => {
   display: flex;
   gap: 15px;
   align-items: center;
+}
+
+.conversation-unread {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+}
+
+.last-message.unread {
+  color: #f56c6c;
+  font-weight: 500;
 }
 
 .product-image {
